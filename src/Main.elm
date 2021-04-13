@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, h1, input, p, text)
+import Html exposing (Html, button, div, h1, input, p, span, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick, onInput)
 
@@ -13,6 +13,7 @@ import Html.Events exposing (onClick, onInput)
 type UiState
     = TeamsView
     | AddTeamView
+    | EditTeamView
     | GameOrderView
 
 
@@ -21,10 +22,21 @@ type alias Team =
     }
 
 
+vanillaTeam : Team
+vanillaTeam =
+    Team ""
+
+
 type alias Model =
     { uiState : UiState
     , teams : List Team
-    , teamNameToAdd : String -- used when adding a new team
+
+    -- add team
+    , teamNameToAdd : String
+
+    -- edit team
+    , teamToEdit : Team
+    , editedTeamName : String
     }
 
 
@@ -36,6 +48,8 @@ vanillaModel =
         , Team "Blackwater"
         , Team "ULU"
         ]
+        ""
+        vanillaTeam
         ""
 
 
@@ -51,9 +65,14 @@ init =
 type Msg
     = NoOp
     | DeleteTeam Team
+      -- add team
     | ShowAddTeam
     | SetTeamNameToAdd String
     | AddTeam
+      -- edit team
+    | ShowEditTeam Team
+    | SetEditedTeamName String
+    | EditTeam
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -62,6 +81,7 @@ update msg model =
         DeleteTeam team ->
             ( { model | teams = List.filter (\t -> t /= team) model.teams }, Cmd.none )
 
+        -- Add team
         ShowAddTeam ->
             ( { model | uiState = AddTeamView }, Cmd.none )
 
@@ -70,6 +90,30 @@ update msg model =
 
         AddTeam ->
             ( { model | teams = Team model.teamNameToAdd :: model.teams, uiState = TeamsView }, Cmd.none )
+
+        -- Edit team
+        ShowEditTeam team ->
+            ( { model | uiState = EditTeamView, teamToEdit = team, editedTeamName = team.name }, Cmd.none )
+
+        SetEditedTeamName teamName ->
+            ( { model | editedTeamName = teamName }, Cmd.none )
+
+        EditTeam ->
+            ( { model
+                | teams =
+                    List.map
+                        (\t ->
+                            if t == model.teamToEdit then
+                                { t | name = model.editedTeamName }
+
+                            else
+                                t
+                        )
+                        model.teams
+                , uiState = TeamsView
+              }
+            , Cmd.none
+            )
 
         _ ->
             ( model, Cmd.none )
@@ -103,7 +147,10 @@ stateView model =
         AddTeamView ->
             addTeamView
 
-        _ ->
+        EditTeamView ->
+            editTeamView model
+
+        GameOrderView ->
             []
 
 
@@ -115,6 +162,19 @@ addTeamView =
     , button
         [ onClick AddTeam ]
         [ text "Add Team" ]
+    ]
+
+
+editTeamView : Model -> List (Html Msg)
+editTeamView model =
+    [ input
+        [ onInput SetEditedTeamName
+        , Html.Attributes.value model.editedTeamName
+        ]
+        []
+    , button
+        [ onClick EditTeam ]
+        [ text "Edit Team" ]
     ]
 
 
@@ -130,7 +190,9 @@ teamView : Team -> Html Msg
 teamView aTeam =
     p
         []
-        [ text aTeam.name
+        [ span
+            [ onClick (ShowEditTeam aTeam) ]
+            [ text aTeam.name ]
         , button
             [ onClick (DeleteTeam aTeam) ]
             [ text "Delete" ]

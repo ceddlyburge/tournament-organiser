@@ -3,7 +3,7 @@
 list of teams
 - [x] delete a team
 - [x] add a team
-- [ ] edit a team
+- [x] edit a team
 - [ ] later: teams can specify whether they want to leave early, arrive late, get games over with as quickly as possible or get as much rest as possible between games. This requires a change to the azure function to be handle the input.
 
 list of games
