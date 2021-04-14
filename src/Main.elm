@@ -1,9 +1,10 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, h1, input, p, span, text)
+import Html exposing (Html, button, div, h1, input, p, section, span, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick, onInput)
+import List.Extra
 
 
 
@@ -15,6 +16,7 @@ type UiState
     | AddTeamView
     | EditTeamView
     | GameOrderView
+    | AddGameView
 
 
 type alias Team =
@@ -27,9 +29,16 @@ vanillaTeam =
     Team ""
 
 
+type alias Game =
+    { homeTeam : Team
+    , awayTeam : Team
+    }
+
+
 type alias Model =
     { uiState : UiState
     , teams : List Team
+    , games : List Game
 
     -- add team
     , teamNameToAdd : String
@@ -48,6 +57,7 @@ vanillaModel =
         , Team "Blackwater"
         , Team "ULU"
         ]
+        []
         ""
         vanillaTeam
         ""
@@ -63,8 +73,8 @@ init =
 
 
 type Msg
-    = NoOp
-    | DeleteTeam Team
+    = -- delete team
+      DeleteTeam Team
       -- add team
     | ShowAddTeam
     | SetTeamNameToAdd String
@@ -73,13 +83,17 @@ type Msg
     | ShowEditTeam Team
     | SetEditedTeamName String
     | EditTeam
+      -- define games
+    | ShowGameOrder
+    | ShowAddGame
+    | DeleteGame Game
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         DeleteTeam team ->
-            ( { model | teams = List.filter (\t -> t /= team) model.teams }, Cmd.none )
+            ( { model | teams = List.Extra.remove team model.teams }, Cmd.none )
 
         -- Add team
         ShowAddTeam ->
@@ -102,6 +116,7 @@ update msg model =
             ( { model
                 | teams =
                     List.map
+                        --could use list.extra.updateif / setif here, its probably slightly better
                         (\t ->
                             if t == model.teamToEdit then
                                 { t | name = model.editedTeamName }
@@ -115,8 +130,27 @@ update msg model =
             , Cmd.none
             )
 
-        _ ->
-            ( model, Cmd.none )
+        -- Game Order
+        ShowGameOrder ->
+            ( { model | uiState = GameOrderView, games = initializeGames model.teams model.games }, Cmd.none )
+
+        DeleteGame game ->
+            ( { model | games = List.Extra.remove game model.games }, Cmd.none )
+
+        -- Add team
+        ShowAddGame ->
+            ( { model | uiState = AddGameView }, Cmd.none )
+
+
+initializeGames : List Team -> List Game -> List Game
+initializeGames teams existingGames =
+    case existingGames of
+        [] ->
+            List.Extra.uniquePairs teams
+                |> List.foldl (\( team1, team2 ) games -> Game team1 team2 :: Game team2 team1 :: games) []
+
+        someGames ->
+            someGames
 
 
 
@@ -129,9 +163,7 @@ view model =
         []
         [ Html.header
             []
-            [ h1 [] [ text "Tournament Organiser - Optimise Order of Games" ]
-            , p [] [ text "Which teams are playing at this tournament?" ]
-            ]
+            [ h1 [] [ text "Tournament Organiser - Optimise Order of Games" ] ]
         , Html.section
             []
             (stateView model)
@@ -151,12 +183,18 @@ stateView model =
             editTeamView model
 
         GameOrderView ->
-            []
+            gameOrderView model
+
+        AddGameView ->
+            addGameView model
 
 
 addTeamView : List (Html Msg)
 addTeamView =
-    [ input
+    [ p
+        []
+        [ text "Which teams are playing at this tournament?" ]
+    , input
         [ onInput SetTeamNameToAdd ]
         []
     , button
@@ -167,7 +205,10 @@ addTeamView =
 
 editTeamView : Model -> List (Html Msg)
 editTeamView model =
-    [ input
+    [ p
+        []
+        [ text "Which teams are playing at this tournament?" ]
+    , input
         [ onInput SetEditedTeamName
         , Html.Attributes.value model.editedTeamName
         ]
@@ -180,10 +221,25 @@ editTeamView model =
 
 teamsView : Model -> List (Html Msg)
 teamsView model =
-    button
-        [ onClick ShowAddTeam ]
-        [ text "Add Team" ]
-        :: List.map teamView model.teams
+    [ p
+        []
+        [ text "Which teams are playing at this tournament?" ]
+    , section
+        []
+        [ button
+            [ onClick ShowAddTeam ]
+            [ text "Add Team" ]
+        ]
+    , section
+        []
+        [ button
+            [ onClick ShowGameOrder ]
+            [ text "Define Games" ]
+        ]
+    , section
+        []
+        (List.map teamView model.teams)
+    ]
 
 
 teamView : Team -> Html Msg
@@ -197,6 +253,59 @@ teamView aTeam =
             [ onClick (DeleteTeam aTeam) ]
             [ text "Delete" ]
         ]
+
+
+gameOrderView : Model -> List (Html Msg)
+gameOrderView model =
+    [ p
+        []
+        [ text "Which games are taking place at this tournament?" ]
+    , section
+        []
+        [ button
+            [ onClick ShowAddGame ]
+            [ text "Add Game" ]
+        ]
+    , section
+        []
+        (List.map gameView model.games)
+    ]
+
+
+gameView : Game -> Html Msg
+gameView game =
+    p
+        []
+        [ span
+            []
+            [ text game.homeTeam.name ]
+        , span
+            []
+            [ text " - " ]
+        , span
+            []
+            [ text game.awayTeam.name ]
+        , button
+            [ onClick (DeleteGame game) ]
+            [ text "Delete" ]
+        ]
+
+
+addGameView : Model -> List (Html Msg)
+addGameView model =
+    [ section
+        []
+        [ text "Which games are taking place at this tournament?" ]
+
+    -- todo
+    --, input
+    --    [ onInput SetTeamNameToAdd ]
+    --    []
+    , button
+        []
+        -- todo [ onClick AddTeam ]
+        [ text "Add Game" ]
+    ]
 
 
 
