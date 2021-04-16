@@ -8,15 +8,16 @@ list of teams
 
 list of games
 - [x] generate a list of everyone plays everyone games initially
-- [ ] reset / recreate a list of everyone plays everyone games if requested
 - [x] delete a game
-- [ ] add a game
+- [x] add a game
+- [ ] edit a game
+- [ ] not much later: reset / recreate a list of everyone plays everyone games if requested
 
 optimise
 - [ ] call azure function
 - [ ] highlight teams playing back to back
 - [ ] allow reordering
-- [ ] later: run the optimisation locally, instead of as an azure function. Maybe can use blazor call c# code locally via web assembly. This looks it might be tricky. Rewriting in Elm is another possibility (and creating a package), but would be a faff.
+- [ ] later: run the optimisation locally, instead of as an azure function. Maybe can use blazor call c# code locally via web assembly. This looks it might be tricky. Rewriting in Elm is another possibility (and creating a package), but would be a faff. Maybe best just to leave it as an azure function, although it could run up costs, which running locally cannot. Not sure how it would be environmentally. Data centres are optimised and use less power generally, but there is the added network cost.
 
 Sort ux
 - [ ] hmmm, may have to go with elm-ui in the end, but see how far classless things and everylayout get
@@ -24,3 +25,5 @@ Sort ux
 - [ ] anaylse problem edge cases
   - attempt to add / edit such that there are identical teams - not allowed
   - attempt to add / edit such that there are identical games - this is a possibility and is allowed
+  - attempt to add a game where a team plays itslef - not allowed
+  - attempt to add a game without the teams defined

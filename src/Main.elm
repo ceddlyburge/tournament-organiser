@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, h1, input, p, section, span, text)
+import Html exposing (Html, button, div, h1, input, option, p, section, select, span, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
@@ -46,6 +46,10 @@ type alias Model =
     -- edit team
     , teamToEdit : Team
     , editedTeamName : String
+
+    -- add game
+    , homeTeamToAdd : Team
+    , awayTeamToAdd : Team
     }
 
 
@@ -61,6 +65,8 @@ vanillaModel =
         ""
         vanillaTeam
         ""
+        vanillaTeam
+        vanillaTeam
 
 
 init : ( Model, Cmd Msg )
@@ -87,6 +93,10 @@ type Msg
     | ShowGameOrder
     | ShowAddGame
     | DeleteGame Game
+      -- add game
+    | SetHomeTeamNameToAdd String
+    | SetAwayTeamNameToAdd String
+    | AddGame
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -137,9 +147,18 @@ update msg model =
         DeleteGame game ->
             ( { model | games = List.Extra.remove game model.games }, Cmd.none )
 
-        -- Add team
         ShowAddGame ->
-            ( { model | uiState = AddGameView }, Cmd.none )
+            ( { model | uiState = AddGameView, homeTeamToAdd = vanillaTeam, awayTeamToAdd = vanillaTeam }, Cmd.none )
+
+        -- Add game
+        SetHomeTeamNameToAdd teamName ->
+            ( { model | homeTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+
+        SetAwayTeamNameToAdd teamName ->
+            ( { model | awayTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+
+        AddGame ->
+            ( { model | games = Game model.homeTeamToAdd model.awayTeamToAdd :: model.games, uiState = GameOrderView }, Cmd.none )
 
 
 initializeGames : List Team -> List Game -> List Game
@@ -296,14 +315,17 @@ addGameView model =
     [ section
         []
         [ text "Which games are taking place at this tournament?" ]
-
-    -- todo
-    --, input
-    --    [ onInput SetTeamNameToAdd ]
-    --    []
-    , button
+    , select
+        [ onInput SetHomeTeamNameToAdd ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
+    , span
         []
-        -- todo [ onClick AddTeam ]
+        [ text " - " ]
+    , select
+        [ onInput SetAwayTeamNameToAdd ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
+    , button
+        [ onClick AddGame ]
         [ text "Add Game" ]
     ]
 
