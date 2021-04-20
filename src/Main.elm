@@ -17,6 +17,7 @@ type UiState
     | EditTeamView
     | GameOrderView
     | AddGameView
+    | EditGameView
 
 
 type alias Team =
@@ -29,10 +30,23 @@ vanillaTeam =
     Team ""
 
 
+
+-- maybe turn this in to a opaque type / parse don't validate thing later, to hide the order, and make sure that there are no two games with the same order number
+
+
 type alias Game =
     { homeTeam : Team
     , awayTeam : Team
+    , order : Int
     }
+
+
+vanillaGame : Game
+vanillaGame =
+    Game
+        vanillaTeam
+        vanillaTeam
+        0
 
 
 type alias Model =
@@ -50,6 +64,11 @@ type alias Model =
     -- add game
     , homeTeamToAdd : Team
     , awayTeamToAdd : Team
+
+    -- edit game (might also want to allow change of order here, but probably it will happen another way)
+    , gameToEdit : Game
+    , editedHomeTeam : Team
+    , editedAwayTeam : Team
     }
 
 
@@ -65,6 +84,9 @@ vanillaModel =
         ""
         vanillaTeam
         ""
+        vanillaTeam
+        vanillaTeam
+        vanillaGame
         vanillaTeam
         vanillaTeam
 
@@ -97,6 +119,11 @@ type Msg
     | SetHomeTeamNameToAdd String
     | SetAwayTeamNameToAdd String
     | AddGame
+      -- edit game
+    | ShowEditGame Game
+    | SetEditedHomeTeam String
+    | SetEditedAwayTeam String
+    | EditGame
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -158,7 +185,33 @@ update msg model =
             ( { model | awayTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
 
         AddGame ->
-            ( { model | games = Game model.homeTeamToAdd model.awayTeamToAdd :: model.games, uiState = GameOrderView }, Cmd.none )
+            ( { model | games = Game model.homeTeamToAdd model.awayTeamToAdd (List.length model.games) :: model.games, uiState = GameOrderView }, Cmd.none )
+
+        -- Edit game
+        ShowEditGame game ->
+            ( { model | uiState = EditGameView, gameToEdit = game, editedHomeTeam = game.homeTeam, editedAwayTeam = game.awayTeam }, Cmd.none )
+
+        SetEditedHomeTeam homeTeamName ->
+            ( { model | editedHomeTeam = List.Extra.find (\t -> t.name == homeTeamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+
+        SetEditedAwayTeam awayTeamName ->
+            ( { model | editedAwayTeam = List.Extra.find (\t -> t.name == awayTeamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+
+        EditGame ->
+            let
+                gameToEdit =
+                    model.gameToEdit
+            in
+            ( { model
+                | games =
+                    List.Extra.setIf
+                        ((==) gameToEdit)
+                        { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
+                        model.games
+                , uiState = GameOrderView
+              }
+            , Cmd.none
+            )
 
 
 initializeGames : List Team -> List Game -> List Game
@@ -166,7 +219,8 @@ initializeGames teams existingGames =
     case existingGames of
         [] ->
             List.Extra.uniquePairs teams
-                |> List.foldl (\( team1, team2 ) games -> Game team1 team2 :: Game team2 team1 :: games) []
+                |> List.foldl (\( team1, team2 ) gameTuples -> ( team1, team2 ) :: ( team2, team1 ) :: gameTuples) []
+                |> List.indexedMap (\index ( homeTeam, awayTeam ) -> Game homeTeam awayTeam index)
 
         someGames ->
             someGames
@@ -206,6 +260,9 @@ stateView model =
 
         AddGameView ->
             addGameView model
+
+        EditGameView ->
+            editGameView model
 
 
 addTeamView : List (Html Msg)
@@ -305,6 +362,9 @@ gameView game =
             []
             [ text game.awayTeam.name ]
         , button
+            [ onClick (ShowEditGame game) ]
+            [ text "Edit" ]
+        , button
             [ onClick (DeleteGame game) ]
             [ text "Delete" ]
         ]
@@ -327,6 +387,28 @@ addGameView model =
     , button
         [ onClick AddGame ]
         [ text "Add Game" ]
+    ]
+
+
+editGameView : Model -> List (Html Msg)
+editGameView model =
+    [ section
+        []
+        [ text "Which games are taking place at this tournament?" ]
+    , select
+        [ onInput SetEditedHomeTeam ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedHomeTeam) ] [ text t.name ]) model.teams)
+    , span
+        []
+        [ text " - " ]
+    , select
+        [ onInput SetEditedAwayTeam
+        , Html.Attributes.value model.editedAwayTeam.name
+        ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedAwayTeam) ] [ text t.name ]) model.teams)
+    , button
+        [ onClick EditGame ]
+        [ text "Edit Game" ]
     ]
 
 
