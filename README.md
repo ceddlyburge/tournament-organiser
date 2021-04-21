@@ -15,10 +15,11 @@ list of games
 - [ ] not much later: reset / recreate a list of everyone plays everyone games if requested
 
 optimise
-- [ ] call azure function
+- [x] call azure function and decode the results
+- [ ] display results from azure function
 - [ ] highlight teams playing back to back
 - [ ] allow reordering
-- [ ] later: run the optimisation locally, instead of as an azure function. Maybe can use blazor call c# code locally via web assembly. This looks it might be tricky. Rewriting in Elm is another possibility (and creating a package), but would be a faff. Maybe best just to leave it as an azure function, although it could run up costs, which running locally cannot. Not sure how it would be environmentally. Data centres are optimised and use less power generally, but there is the added network cost.
+- [ ] maybe later: run the optimisation locally, instead of as an azure function. Maybe can use blazor call c# code locally via web assembly. This looks it might be tricky. Rewriting in Elm is another possibility (and creating a package), but would be a faff. Maybe best just to leave it as an azure function, although it could run up costs, which running locally cannot. Not sure how it would be environmentally. Data centres are optimised and use less power generally, but there is the added network cost.
 
 Sort ux
 - [ ] hmmm, may have to go with elm-ui in the end, but see how far classless things and everylayout get
@@ -29,10 +30,20 @@ Sort ux
   - attempt to add a game where a team plays itslef - not allowed
   - attempt to add a game without the teams defined
   - want to be able to cancel editing
+  - attempt to add a team with no name
 - [ ] add routing probably
+- [ ] show a waiting type thing when waiting for the optimisation api call
+- [ ] show error message if api call fails
+- [ ] show message from the optimisation
 
 Sort dx
 - [ ] add view type
 - [ ] split in to smaller files, probably one per uistate, split up the Msg and Model along these lines as well, so top level one is simple
+- [ ] split out code related to the azure function / api
 - [ ] use opaque type / parse dont validate for game list (and hide order as an implentation detail)
  
+Release
+- [ ] Release azure function
+- [ ] Release app to netlify
+- [ ] Azure function to require a token
+- [ ] Add netlify function / aws lambda to hide the token for the azure function and use

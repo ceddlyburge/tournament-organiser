@@ -2,13 +2,85 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html, button, div, h1, input, option, p, section, select, span, text)
-import Html.Attributes exposing (src)
+import Html.Attributes exposing (src, value)
 import Html.Events exposing (onClick, onInput)
+import Http
+import Json.Decode
+import Json.Decode.Pipeline
+import Json.Encode as Encode
 import List.Extra
+import RemoteData exposing (WebData)
 
 
 
 ---- MODEL ----
+-- type to represent the result of the optimization api
+
+
+type alias Optimisation =
+    { optimisedGameOrder : OptimisedGameOrder
+    , pragmatisationLevel : Int
+    , optimisationMessage : String
+    , optimisedGameOrderAvailable : Bool
+    }
+
+
+type alias OptimisedGameOrder =
+    { gameOrder : List OptimisedGame
+    , occurencesOfTeamsPlayingConsecutiveGames : Int
+    , maxPlayingInConsecutiveGames : Int
+    , gamesNotPlayedBetweenFirstAndLast : Int
+    }
+
+
+type alias OptimisedTeam =
+    { name : String
+    }
+
+
+type alias OptimisedGame =
+    { homeTeamPlayingConsecutively : Bool
+    , awayTeamPlayingConsecutively : Bool
+    , homeTeam : OptimisedTeam
+    , awayTeam : OptimisedTeam
+    }
+
+
+decodeOptimisation : Json.Decode.Decoder Optimisation
+decodeOptimisation =
+    Json.Decode.succeed Optimisation
+        |> Json.Decode.Pipeline.required "optimisedGameOrder" decodeOptimisedGames
+        |> Json.Decode.Pipeline.required "pragmatisationLevel" Json.Decode.int
+        |> Json.Decode.Pipeline.required "optimisationMessage" Json.Decode.string
+        |> Json.Decode.Pipeline.required "optimisedGameOrderAvailable" Json.Decode.bool
+
+
+decodeOptimisedGames : Json.Decode.Decoder OptimisedGameOrder
+decodeOptimisedGames =
+    Json.Decode.succeed OptimisedGameOrder
+        |> Json.Decode.Pipeline.required "gameOrder" (Json.Decode.list decodeOptimisedGame)
+        |> Json.Decode.Pipeline.required "occurencesOfTeamsPlayingConsecutiveGames" Json.Decode.int
+        |> Json.Decode.Pipeline.required "maxPlayingInConsecutiveGames" Json.Decode.int
+        |> Json.Decode.Pipeline.required "gamesNotPlayedBetweenFirstAndLast" Json.Decode.int
+
+
+decodeOptimisedGame : Json.Decode.Decoder OptimisedGame
+decodeOptimisedGame =
+    Json.Decode.succeed OptimisedGame
+        |> Json.Decode.Pipeline.required "homeTeamPlayingConsecutively" Json.Decode.bool
+        |> Json.Decode.Pipeline.required "awayTeamPlayingConsecutively" Json.Decode.bool
+        |> Json.Decode.Pipeline.required "homeTeam" decodeOptimisedTeam
+        |> Json.Decode.Pipeline.required "awayTeam" decodeOptimisedTeam
+
+
+decodeOptimisedTeam : Json.Decode.Decoder OptimisedTeam
+decodeOptimisedTeam =
+    Json.Decode.succeed OptimisedTeam
+        |> Json.Decode.Pipeline.required "name" Json.Decode.string
+
+
+
+-- rest of model
 
 
 type UiState
@@ -49,6 +121,19 @@ vanillaGame =
         0
 
 
+encodeGame : Game -> Encode.Value
+encodeGame game =
+    Encode.object
+        [ ( "HomeTeam", Encode.string game.homeTeam.name )
+        , ( "AwayTeam", Encode.string game.awayTeam.name )
+        ]
+
+
+encodeGames : List Game -> Encode.Value
+encodeGames games =
+    Encode.list encodeGame games
+
+
 type alias Model =
     { uiState : UiState
     , teams : List Team
@@ -69,6 +154,9 @@ type alias Model =
     , gameToEdit : Game
     , editedHomeTeam : Team
     , editedAwayTeam : Team
+
+    -- call to optimize api
+    , optimizedGameOrder : WebData Optimisation
     }
 
 
@@ -89,6 +177,7 @@ vanillaModel =
         vanillaGame
         vanillaTeam
         vanillaTeam
+        RemoteData.NotAsked
 
 
 init : ( Model, Cmd Msg )
@@ -124,6 +213,9 @@ type Msg
     | SetEditedHomeTeam String
     | SetEditedAwayTeam String
     | EditGame
+      -- Optimise
+    | OptimiseGameOrder
+    | OptimiseGameOrderResponse (WebData Optimisation)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -212,6 +304,31 @@ update msg model =
               }
             , Cmd.none
             )
+
+        OptimiseGameOrder ->
+            ( model
+            , Http.post
+                { url = "http://localhost:7071/api/OptimalGameOrder"
+                , body = encodeGames model.games |> Http.jsonBody
+                , expect = Http.expectJson (RemoteData.fromResult >> OptimiseGameOrderResponse) decodeOptimisation
+                }
+            )
+
+        OptimiseGameOrderResponse response ->
+            case response of
+                RemoteData.Success optimsation ->
+                    ( { model
+                        | optimizedGameOrder = response
+
+                        --, games = games
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( { model | optimizedGameOrder = response }
+                    , Cmd.none
+                    )
 
 
 initializeGames : List Team -> List Game -> List Game
@@ -341,6 +458,12 @@ gameOrderView model =
         [ button
             [ onClick ShowAddGame ]
             [ text "Add Game" ]
+        ]
+    , section
+        []
+        [ button
+            [ onClick OptimiseGameOrder ]
+            [ text "Optimise Game Order" ]
         ]
     , section
         []
