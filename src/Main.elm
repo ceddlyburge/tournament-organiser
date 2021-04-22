@@ -156,7 +156,7 @@ type alias Model =
     , editedAwayTeam : Team
 
     -- call to optimize api
-    , optimizedGameOrder : WebData Optimisation
+    , optimisedGameOrder : WebData Optimisation
     }
 
 
@@ -306,7 +306,7 @@ update msg model =
             )
 
         OptimiseGameOrder ->
-            ( model
+            ( { model | optimisedGameOrder = RemoteData.Loading }
             , Http.post
                 { url = "http://localhost:7071/api/OptimalGameOrder"
                 , body = encodeGames model.games |> Http.jsonBody
@@ -318,7 +318,7 @@ update msg model =
             case response of
                 RemoteData.Success optimisation ->
                     ( { model
-                        | optimizedGameOrder = response
+                        | optimisedGameOrder = response
 
                         -- if we add other things to Team (such as whether they want to leave early)
                         -- we will have to match up the OptimisedTeam's with the Team's
@@ -328,7 +328,7 @@ update msg model =
                     )
 
                 _ ->
-                    ( { model | optimizedGameOrder = response }
+                    ( { model | optimisedGameOrder = response }
                     , Cmd.none
                     )
 
@@ -452,6 +452,23 @@ teamView aTeam =
 
 gameOrderView : Model -> List (Html Msg)
 gameOrderView model =
+    case model.optimisedGameOrder of
+        RemoteData.Success _ ->
+            gameOrderView2 model
+
+        RemoteData.NotAsked ->
+            gameOrderView2 model
+
+        RemoteData.Loading ->
+            [ loading ]
+
+        -- todo: show error
+        RemoteData.Failure _ ->
+            gameOrderView2 model
+
+
+gameOrderView2 : Model -> List (Html Msg)
+gameOrderView2 model =
     [ p
         []
         [ text "Which games are taking place at this tournament?" ]
@@ -535,6 +552,20 @@ editGameView model =
         [ onClick EditGame ]
         [ text "Edit Game" ]
     ]
+
+
+loading : Html msg
+loading =
+    Html.div
+        [ Html.Attributes.class "loading" ]
+        [ Html.div
+            [ Html.Attributes.class "la-ball-newton-cradle la-3x" ]
+            [ Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            ]
+        ]
 
 
 

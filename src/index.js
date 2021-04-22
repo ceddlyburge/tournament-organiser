@@ -1,3 +1,5 @@
+import './fade-in.css';
+import './loading.css';
 import './main.css';
 import { Elm } from './Main.elm';
 import * as serviceWorker from './serviceWorker';

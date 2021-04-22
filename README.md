@@ -22,20 +22,24 @@ optimise
 - [ ] maybe later: run the optimisation locally, instead of as an azure function. Maybe can use blazor call c# code locally via web assembly. This looks it might be tricky. Rewriting in Elm is another possibility (and creating a package), but would be a faff. Maybe best just to leave it as an azure function, although it could run up costs, which running locally cannot. Not sure how it would be environmentally. Data centres are optimised and use less power generally, but there is the added network cost.
 
 Sort ux
-- [ ] hmmm, may have to go with elm-ui in the end, but see how far classless things and everylayout get
-- [ ] maybe assign each team a colour to make visual comparison easier, in same way that people do in google spreadsheet
+- [x] show a waiting type thing when waiting for the optimisation api call
+- [ ] show message from the optimisation
+- [ ] show error message if api call fails
+- [ ] add error handling for json decoding / mapping
+  - [ ] cant decode
+  - [ ] decode a team or game that doesn't currently exist
+- [ ] do drag drop / touch reordering if possible
+- [ ] make look nice, probably try every layout and see if I can do something simple / good with that, otherwise revert to elm-ui probably
+- [ ] add routing probably
+- [ ] maybe assign each team a colour to make visual comparison easier, in same way that people do in google spreadsheet, might be a faff though, and colours will make the design hard / not work. Maybe there is a better idea that doesn't use colours
 - [ ] anaylse problem edge cases
   - attempt to add / edit such that there are identical teams - not allowed
   - attempt to add / edit such that there are identical games - this is a possibility and is allowed
-  - attempt to add a game where a team plays itslef - not allowed
+  - attempt to add a game where a team plays itself - not allowed
   - attempt to add a game without the teams defined
   - want to be able to cancel editing
   - attempt to add a team with no name
-- [ ] add routing probably
-- [ ] show a waiting type thing when waiting for the optimisation api call
-- [ ] show error message if api call fails
-- [ ] show message from the optimisation
-- [ ] do drag drop / touch reordering if possible
+- [ ] animate the change of the game order when it is optimised. This will be a big job so definitely last thing to do
 
 Sort dx
 - [ ] add view type
