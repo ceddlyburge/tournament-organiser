@@ -23,8 +23,8 @@ optimise
 
 Sort ux
 - [x] show a waiting type thing when waiting for the optimisation api call
+- [x] show error message if api call fails
 - [ ] show message from the optimisation
-- [ ] show error message if api call fails
 - [ ] add error handling for json decoding / mapping
   - [ ] cant decode
   - [ ] decode a team or game that doesn't currently exist

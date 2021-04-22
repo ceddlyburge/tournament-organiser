@@ -462,9 +462,8 @@ gameOrderView model =
         RemoteData.Loading ->
             [ loading ]
 
-        -- todo: show error
-        RemoteData.Failure _ ->
-            gameOrderView2 model
+        RemoteData.Failure error ->
+            p [] [ text (httpErrorMessage error) ] :: gameOrderView2 model
 
 
 gameOrderView2 : Model -> List (Html Msg)
@@ -566,6 +565,25 @@ loading =
             , Html.div [] []
             ]
         ]
+
+
+httpErrorMessage : Http.Error -> String
+httpErrorMessage error =
+    case error of
+        Http.Timeout ->
+            "Timeout, maybe there is no connection to the internet, or the optimisation server is down"
+
+        Http.NetworkError ->
+            "Network error, maybe there is no connection to the internet, or the optimisation server is down"
+
+        Http.BadBody message ->
+            "Unexpected Body. Hmmm, there is probably a problem in my configuration, please create an issue. Error returned: " ++ message
+
+        Http.BadStatus statusCode ->
+            "Bad Response. Hmmm, there is probably a problem in my configuration, or there is a problem with the optimisation server. Please create an issue. Status returned: " ++ String.fromInt statusCode
+
+        Http.BadUrl message ->
+            "Bad Url. Hmmm, there is probably a problem in my configuration, please create an issue. Error returned: " ++ message
 
 
 
