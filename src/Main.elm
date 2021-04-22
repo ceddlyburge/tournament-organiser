@@ -316,11 +316,13 @@ update msg model =
 
         OptimiseGameOrderResponse response ->
             case response of
-                RemoteData.Success optimsation ->
+                RemoteData.Success optimisation ->
                     ( { model
                         | optimizedGameOrder = response
 
-                        --, games = games
+                        -- if we add other things to Team (such as whether they want to leave early)
+                        -- we will have to match up the OptimisedTeam's with the Team's
+                        , games = List.indexedMap (\index game -> Game (Team game.homeTeam.name) (Team game.awayTeam.name) index) optimisation.optimisedGameOrder.gameOrder
                       }
                     , Cmd.none
                     )
