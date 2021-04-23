@@ -17,21 +17,22 @@ list of games
 optimise
 - [x] call azure function and decode the results
 - [x] display results from azure function
-- [ ] highlight teams playing back to back. The api tells us this, but maybe we should work it out ourselves. It isn't super complicated, and avoids repeated calls to the api. However, we might want other stats from the optimisation, such as how many teams are playing back to back, and how well the optimisation meets the requirements. hmmm.
+- [x] highlight teams playing back to back. The api tells us this, but maybe we should work it out ourselves. It isn't super complicated, and avoids repeated calls to the api. However, we might want other stats from the optimisation, such as how many teams are playing back to back, and how well the optimisation meets the requirements. hmmm. I think adding an "Analyse" button, and corresponding endpoint on the azure function is the best way to do this.
 - [ ] allow reordering
 - [ ] maybe later: run the optimisation locally, instead of as an azure function. Maybe can use blazor call c# code locally via web assembly. This looks it might be tricky. Rewriting in Elm is another possibility (and creating a package), but would be a faff. Maybe best just to leave it as an azure function, although it could run up costs, which running locally cannot. Not sure how it would be environmentally. Data centres are optimised and use less power generally, but there is the added network cost.
 
 Sort ux
 - [x] show a waiting type thing when waiting for the optimisation api call
 - [x] show error message if api call fails
-- [ ] show message from the optimisation
-- [ ] add error handling for json decoding / mapping
-  - [ ] cant decode
-  - [ ] decode a team or game that doesn't currently exist
+- [x] show message from the optimisation
 - [ ] make look nice, probably try every layout and see if I can do something simple / good with that, otherwise revert to elm-ui probably
   - [ ] Improve display of loading graphic (maybe grey out screen and overlay or similar)
   - [ ] Improve display of api failure (maybe it pops up and then fades away)
   - [ ] Improve display of optimisation message. Only show if there is one, and put it in the right place (above list). Remove it if the list is reordered (when reordering is possible)
+- Add "Analyse" button, to show the optimsation metrics for the currently displayed game order
+- [ ] add error handling for json decoding / mapping
+  - [ ] cant decode
+  - [ ] decode a team or game that doesn't currently exist
 - [ ] do drag drop / touch reordering if possible
 - [ ] add routing probably
 - [ ] maybe assign each team a colour to make visual comparison easier, in same way that people do in google spreadsheet, might be a faff though, and colours will make the design hard / not work. Maybe there is a better idea that doesn't use colours

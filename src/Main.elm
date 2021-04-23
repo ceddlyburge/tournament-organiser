@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html, button, div, h1, input, option, p, section, select, span, text)
-import Html.Attributes exposing (src, value)
+import Html.Attributes exposing (class, src, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode
@@ -109,6 +109,8 @@ vanillaTeam =
 type alias Game =
     { homeTeam : Team
     , awayTeam : Team
+    , homeTeamPlayingConsecutively : Maybe Bool
+    , awayTeamPlayingConsecutively : Maybe Bool
     , order : Int
     }
 
@@ -118,6 +120,8 @@ vanillaGame =
     Game
         vanillaTeam
         vanillaTeam
+        Nothing
+        Nothing
         0
 
 
@@ -156,7 +160,7 @@ type alias Model =
     , editedAwayTeam : Team
 
     -- call to optimize api
-    , optimisedGameOrder : WebData Optimisation
+    , optimisation : WebData Optimisation
     }
 
 
@@ -277,7 +281,15 @@ update msg model =
             ( { model | awayTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
 
         AddGame ->
-            ( { model | games = Game model.homeTeamToAdd model.awayTeamToAdd (List.length model.games) :: model.games, uiState = GameOrderView }, Cmd.none )
+            let
+                newModel =
+                    { model
+                        | games = Game model.homeTeamToAdd model.awayTeamToAdd Nothing Nothing (List.length model.games) :: model.games
+                        , uiState = GameOrderView
+                    }
+                        |> clearOptimisationResults
+            in
+            ( newModel, Cmd.none )
 
         -- Edit game
         ShowEditGame game ->
@@ -293,20 +305,24 @@ update msg model =
             let
                 gameToEdit =
                     model.gameToEdit
+
+                newModel =
+                    { model
+                        | games =
+                            List.Extra.setIf
+                                ((==) gameToEdit)
+                                { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
+                                model.games
+                        , uiState = GameOrderView
+                    }
+                        |> clearOptimisationResults
             in
-            ( { model
-                | games =
-                    List.Extra.setIf
-                        ((==) gameToEdit)
-                        { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
-                        model.games
-                , uiState = GameOrderView
-              }
+            ( newModel
             , Cmd.none
             )
 
         OptimiseGameOrder ->
-            ( { model | optimisedGameOrder = RemoteData.Loading }
+            ( { model | optimisation = RemoteData.Loading }
             , Http.post
                 { url = "http://localhost:7071/api/OptimalGameOrder"
                 , body = encodeGames model.games |> Http.jsonBody
@@ -318,17 +334,17 @@ update msg model =
             case response of
                 RemoteData.Success optimisation ->
                     ( { model
-                        | optimisedGameOrder = response
+                        | optimisation = response
 
                         -- if we add other things to Team (such as whether they want to leave early)
                         -- we will have to match up the OptimisedTeam's with the Team's
-                        , games = List.indexedMap (\index game -> Game (Team game.homeTeam.name) (Team game.awayTeam.name) index) optimisation.optimisedGameOrder.gameOrder
+                        , games = List.indexedMap (\index game -> Game (Team game.homeTeam.name) (Team game.awayTeam.name) (Just game.homeTeamPlayingConsecutively) (Just game.awayTeamPlayingConsecutively) index) optimisation.optimisedGameOrder.gameOrder
                       }
                     , Cmd.none
                     )
 
                 _ ->
-                    ( { model | optimisedGameOrder = response }
+                    ( { model | optimisation = response }
                     , Cmd.none
                     )
 
@@ -339,10 +355,18 @@ initializeGames teams existingGames =
         [] ->
             List.Extra.uniquePairs teams
                 |> List.foldl (\( team1, team2 ) gameTuples -> ( team1, team2 ) :: ( team2, team1 ) :: gameTuples) []
-                |> List.indexedMap (\index ( homeTeam, awayTeam ) -> Game homeTeam awayTeam index)
+                |> List.indexedMap (\index ( homeTeam, awayTeam ) -> Game homeTeam awayTeam Nothing Nothing index)
 
         someGames ->
             someGames
+
+
+clearOptimisationResults : Model -> Model
+clearOptimisationResults model =
+    { model
+        | optimisation = RemoteData.NotAsked
+        , games = List.map (\game -> Game game.homeTeam game.awayTeam Nothing Nothing game.order) model.games
+    }
 
 
 
@@ -452,7 +476,7 @@ teamView aTeam =
 
 gameOrderView : Model -> List (Html Msg)
 gameOrderView model =
-    case model.optimisedGameOrder of
+    case model.optimisation of
         RemoteData.Success optimisation ->
             p [] [ text optimisation.optimisationMessage ] :: gameOrderView2 model
 
@@ -494,13 +518,13 @@ gameView game =
     p
         []
         [ span
-            []
+            (consecutiveGameClass game.homeTeamPlayingConsecutively)
             [ text game.homeTeam.name ]
         , span
             []
             [ text " - " ]
         , span
-            []
+            (consecutiveGameClass game.awayTeamPlayingConsecutively)
             [ text game.awayTeam.name ]
         , button
             [ onClick (ShowEditGame game) ]
@@ -509,6 +533,20 @@ gameView game =
             [ onClick (DeleteGame game) ]
             [ text "Delete" ]
         ]
+
+
+consecutiveGameClass : Maybe Bool -> List (Html.Attribute Msg)
+consecutiveGameClass maybePlayingConsecutiveley =
+    case maybePlayingConsecutiveley of
+        Just playingConsecutiveley ->
+            if playingConsecutiveley then
+                [ class "playingConsecutively" ]
+
+            else
+                [ class "atLeastOneGameToRecover" ]
+
+        Nothing ->
+            []
 
 
 addGameView : Model -> List (Html Msg)

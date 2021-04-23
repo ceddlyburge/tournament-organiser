@@ -8,6 +8,15 @@
 [data-elm-hot="true"] {
   height: inherit;
 }
+
+.playingConsecutively {
+  color: red;
+}
+
+.atLeastOneGameToRecover {
+  color: green;
+}
+
 /* 
 body {
   font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
