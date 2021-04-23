@@ -453,8 +453,8 @@ teamView aTeam =
 gameOrderView : Model -> List (Html Msg)
 gameOrderView model =
     case model.optimisedGameOrder of
-        RemoteData.Success _ ->
-            gameOrderView2 model
+        RemoteData.Success optimisation ->
+            p [] [ text optimisation.optimisationMessage ] :: gameOrderView2 model
 
         RemoteData.NotAsked ->
             gameOrderView2 model
