@@ -1,8 +1,8 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, h1, input, option, p, section, select, span, text)
-import Html.Attributes exposing (class, src, value)
+import Html exposing (Html, a, button, div, h1, h2, header, img, input, li, main_, nav, option, p, section, select, span, text, ul)
+import Html.Attributes exposing (alt, class, src, value, width)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode
@@ -10,6 +10,8 @@ import Json.Decode.Pipeline
 import Json.Encode as Encode
 import List.Extra
 import RemoteData exposing (WebData)
+import Svg exposing (Svg)
+import Svg.Attributes
 
 
 
@@ -371,17 +373,28 @@ clearOptimisationResults model =
 
 
 ---- VIEW ----
+-- maybe put class center in to css file if its ubiquitous
+-- could have a stack = class "stack" function and similar as well
 
 
 view : Model -> Html Msg
 view model =
-    Html.main_
-        []
-        [ Html.header
+    div
+        [ class "body stack" ]
+        [ header
             []
-            [ h1 [] [ text "Tournament Organiser - Optimise Order of Games" ] ]
-        , Html.section
-            []
+            [ h1 [ class "text-center" ] [ text "Tournament Organiser" ]
+            , h2 [ class "text-center" ] [ text "Optimise Order of Games" ]
+            , nav
+                [ class "center" ]
+                [ -- this probably wants to enable / disable appropriately. not a biggie though
+                  a
+                    [ onClick ShowGameOrder ]
+                    [ text "Define Games" ]
+                ]
+            ]
+        , main_
+            [ class "center stack" ]
             (stateView model)
         ]
 
@@ -411,7 +424,7 @@ stateView model =
 addTeamView : List (Html Msg)
 addTeamView =
     [ p
-        []
+        [ class "text-center" ]
         [ text "Which teams are playing at this tournament?" ]
     , input
         [ onInput SetTeamNameToAdd ]
@@ -425,7 +438,7 @@ addTeamView =
 editTeamView : Model -> List (Html Msg)
 editTeamView model =
     [ p
-        []
+        [ class "text-center" ]
         [ text "Which teams are playing at this tournament?" ]
     , input
         [ onInput SetEditedTeamName
@@ -441,36 +454,53 @@ editTeamView model =
 teamsView : Model -> List (Html Msg)
 teamsView model =
     [ p
-        []
+        [ class "text-center" ]
         [ text "Which teams are playing at this tournament?" ]
-    , section
-        []
-        [ button
-            [ onClick ShowAddTeam ]
-            [ text "Add Team" ]
+    , button
+        [ onClick ShowAddTeam
+        , class "primary center"
         ]
-    , section
-        []
-        [ button
-            [ onClick ShowGameOrder ]
-            [ text "Define Games" ]
-        ]
-    , section
-        []
+        [ text "Add Team" ]
+    , ul
+        [ class "stack stack-small" ]
         (List.map teamView model.teams)
     ]
 
 
+deleteIcon : Html msg
+deleteIcon =
+    Svg.svg
+        [ Svg.Attributes.viewBox "0 0 448 512"
+        , Svg.Attributes.class "icon"
+        , Svg.Attributes.fill "currentColor"
+        , Svg.Attributes.stroke "currentColor"
+        ]
+        [ Svg.path
+            [ Svg.Attributes.d "M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"
+            ]
+            []
+        ]
+
+
+deleteListItemButton : msg -> Html msg
+deleteListItemButton onDelete =
+    button
+        [ onClick onDelete
+        , class "list"
+        ]
+        [ deleteIcon ]
+
+
 teamView : Team -> Html Msg
 teamView aTeam =
-    p
+    li
         []
         [ span
-            [ onClick (ShowEditTeam aTeam) ]
+            [ onClick (ShowEditTeam aTeam)
+            , class "grow"
+            ]
             [ text aTeam.name ]
-        , button
-            [ onClick (DeleteTeam aTeam) ]
-            [ text "Delete" ]
+        , deleteListItemButton (DeleteTeam aTeam)
         ]
 
 
