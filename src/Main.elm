@@ -92,6 +92,7 @@ type UiState
     | GameOrderView
     | AddGameView
     | EditGameView
+    | OptimiseView
 
 
 type alias Team =
@@ -196,8 +197,9 @@ init =
 
 
 type Msg
-    = -- delete team
-      DeleteTeam Team
+    = ShowTeams
+      -- delete team
+    | DeleteTeam Team
       -- add team
     | ShowAddTeam
     | SetTeamNameToAdd String
@@ -220,6 +222,7 @@ type Msg
     | SetEditedAwayTeam String
     | EditGame
       -- Optimise
+    | ShowOptimise
     | OptimiseGameOrder
     | OptimiseGameOrderResponse (WebData Optimisation)
 
@@ -227,6 +230,10 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        -- Teams
+        ShowTeams ->
+            ( { model | uiState = TeamsView }, Cmd.none )
+
         DeleteTeam team ->
             ( { model | teams = List.Extra.remove team model.teams }, Cmd.none )
 
@@ -323,6 +330,10 @@ update msg model =
             , Cmd.none
             )
 
+        -- Optimise
+        ShowOptimise ->
+            ( { model | uiState = OptimiseView }, Cmd.none )
+
         OptimiseGameOrder ->
             ( { model | optimisation = RemoteData.Loading }
             , Http.post
@@ -389,8 +400,20 @@ view model =
                 [ class "center" ]
                 [ -- this probably wants to enable / disable appropriately. not a biggie though
                   a
+                    [ onClick ShowTeams ]
+                    [ text "Define Teams" ]
+
+                -- sort out the spans with some flex or something
+                , span [] [ text " - " ]
+                , -- this probably wants to enable / disable appropriately. not a biggie though
+                  a
                     [ onClick ShowGameOrder ]
                     [ text "Define Games" ]
+                , span [] [ text " - " ]
+                , -- this probably wants to enable / disable appropriately. not a biggie though
+                  a
+                    [ onClick ShowOptimise ]
+                    [ text "Optimise!" ]
                 ]
             ]
         , main_
@@ -420,13 +443,39 @@ stateView model =
         EditGameView ->
             editGameView model
 
+        OptimiseView ->
+            optimiseView model
+
+
+teamsView : Model -> List (Html Msg)
+teamsView model =
+    [ button
+        [ onClick ShowAddTeam
+        , class "primary center"
+        ]
+        [ text "Add Team" ]
+    , ul
+        [ class "stack stack-small" ]
+        (List.map teamView model.teams)
+    ]
+
+
+teamView : Team -> Html Msg
+teamView aTeam =
+    li
+        []
+        [ span
+            [ onClick (ShowEditTeam aTeam)
+            , class "grow"
+            ]
+            [ text aTeam.name ]
+        , deleteListItemButton (DeleteTeam aTeam)
+        ]
+
 
 addTeamView : List (Html Msg)
 addTeamView =
-    [ p
-        [ class "text-center" ]
-        [ text "Which teams are playing at this tournament?" ]
-    , input
+    [ input
         [ onInput SetTeamNameToAdd ]
         []
     , button
@@ -437,10 +486,7 @@ addTeamView =
 
 editTeamView : Model -> List (Html Msg)
 editTeamView model =
-    [ p
-        [ class "text-center" ]
-        [ text "Which teams are playing at this tournament?" ]
-    , input
+    [ input
         [ onInput SetEditedTeamName
         , Html.Attributes.value model.editedTeamName
         ]
@@ -448,22 +494,6 @@ editTeamView model =
     , button
         [ onClick EditTeam ]
         [ text "Edit Team" ]
-    ]
-
-
-teamsView : Model -> List (Html Msg)
-teamsView model =
-    [ p
-        [ class "text-center" ]
-        [ text "Which teams are playing at this tournament?" ]
-    , button
-        [ onClick ShowAddTeam
-        , class "primary center"
-        ]
-        [ text "Add Team" ]
-    , ul
-        [ class "stack stack-small" ]
-        (List.map teamView model.teams)
     ]
 
 
@@ -482,6 +512,21 @@ deleteIcon =
         ]
 
 
+editIcon : Html msg
+editIcon =
+    Svg.svg
+        [ Svg.Attributes.viewBox "0 0 512 512"
+        , Svg.Attributes.class "icon"
+        , Svg.Attributes.fill "currentColor"
+        , Svg.Attributes.stroke "currentColor"
+        ]
+        [ Svg.path
+            [ Svg.Attributes.d "M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.8 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"
+            ]
+            []
+        ]
+
+
 deleteListItemButton : msg -> Html msg
 deleteListItemButton onDelete =
     button
@@ -491,77 +536,94 @@ deleteListItemButton onDelete =
         [ deleteIcon ]
 
 
-teamView : Team -> Html Msg
-teamView aTeam =
-    li
-        []
-        [ span
-            [ onClick (ShowEditTeam aTeam)
-            , class "grow"
-            ]
-            [ text aTeam.name ]
-        , deleteListItemButton (DeleteTeam aTeam)
+editListItemButton : msg -> Html msg
+editListItemButton onEdit =
+    button
+        [ onClick onEdit
+        , class "list"
         ]
+        [ editIcon ]
 
 
 gameOrderView : Model -> List (Html Msg)
 gameOrderView model =
-    case model.optimisation of
-        RemoteData.Success optimisation ->
-            p [] [ text optimisation.optimisationMessage ] :: gameOrderView2 model
-
-        RemoteData.NotAsked ->
-            gameOrderView2 model
-
-        RemoteData.Loading ->
-            [ loading ]
-
-        RemoteData.Failure error ->
-            p [] [ text (httpErrorMessage error) ] :: gameOrderView2 model
-
-
-gameOrderView2 : Model -> List (Html Msg)
-gameOrderView2 model =
-    [ p
-        []
-        [ text "Which games are taking place at this tournament?" ]
-    , section
-        []
-        [ button
-            [ onClick ShowAddGame ]
-            [ text "Add Game" ]
+    [ button
+        [ onClick ShowAddGame
+        , class "primary center"
         ]
-    , section
-        []
-        [ button
-            [ onClick OptimiseGameOrder ]
-            [ text "Optimise Game Order" ]
-        ]
-    , section
-        []
+        [ text "Add Game" ]
+    , ul
+        [ class "stack stack-small" ]
         (List.map gameView model.games)
     ]
 
 
 gameView : Game -> Html Msg
 gameView game =
-    p
+    li
         []
+        [ span
+            [ class "grow" ]
+            [ span
+                (consecutiveGameClass game.homeTeamPlayingConsecutively)
+                [ text game.homeTeam.name ]
+            , span
+                []
+                [ text " - " ]
+            , span
+                (consecutiveGameClass game.awayTeamPlayingConsecutively)
+                [ text game.awayTeam.name ]
+            ]
+        , editListItemButton (ShowEditGame game)
+
+        -- use some styling here instead of the separator
+        , span [] [ text "\u{00A0}" ]
+        , deleteListItemButton (DeleteGame game)
+        ]
+
+
+optimiseView : Model -> List (Html Msg)
+optimiseView model =
+    case model.optimisation of
+        RemoteData.Success optimisation ->
+            p [] [ text optimisation.optimisationMessage ] :: optimisedGameOrderView model
+
+        RemoteData.NotAsked ->
+            optimisedGameOrderView model
+
+        RemoteData.Loading ->
+            [ loading ]
+
+        RemoteData.Failure error ->
+            p [] [ text (httpErrorMessage error) ] :: optimisedGameOrderView model
+
+
+optimisedGameOrderView : Model -> List (Html Msg)
+optimisedGameOrderView model =
+    [ button
+        [ onClick OptimiseGameOrder
+        , class "primary center"
+        ]
+        [ text "Optimise" ]
+    , ul
+        [ class "stack stack-small" ]
+        (List.map optimisedGameView model.games)
+    ]
+
+
+optimisedGameView : Game -> Html Msg
+optimisedGameView game =
+    li
+        [ class "center" ]
         [ span
             (consecutiveGameClass game.homeTeamPlayingConsecutively)
             [ text game.homeTeam.name ]
         , span
             []
-            [ text " - " ]
+            [ text "\u{00A0}-\u{00A0}" ]
         , span
             (consecutiveGameClass game.awayTeamPlayingConsecutively)
             [ text game.awayTeam.name ]
-        , button
-            [ onClick (ShowEditGame game) ]
-            [ text "Edit" ]
-        , button
-            [ onClick (DeleteGame game) ]
-            [ text "Delete" ]
         ]
 
 
@@ -581,10 +643,7 @@ consecutiveGameClass maybePlayingConsecutiveley =
 
 addGameView : Model -> List (Html Msg)
 addGameView model =
-    [ section
-        []
-        [ text "Which games are taking place at this tournament?" ]
-    , select
+    [ select
         [ onInput SetHomeTeamNameToAdd ]
         (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
     , span
@@ -601,10 +660,7 @@ addGameView model =
 
 editGameView : Model -> List (Html Msg)
 editGameView model =
-    [ section
-        []
-        [ text "Which games are taking place at this tournament?" ]
-    , select
+    [ select
         [ onInput SetEditedHomeTeam ]
         (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedHomeTeam) ] [ text t.name ]) model.teams)
     , span
