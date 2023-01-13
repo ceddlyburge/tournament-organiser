@@ -183,16 +183,17 @@ button.list {
   padding: var(--s-5) var(--s-3);
 }
 
-input {
+input, select {
   font-size: 1em;
   writing-mode: horizontal-tb !important;
   color: var(--text-color);
   background-color: var(--thead-bg-color);
   padding: var(--s-3) var(--s-1);
   border-radius: var(--s-5);
+  text-align: center;
 }
 
-input:focus {
+input:focus, select:focus {
   outline-color: var(--thead-color);
   outline-width: var(--s-6);
   outline-style: solid;

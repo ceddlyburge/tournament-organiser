@@ -479,7 +479,9 @@ addTeamView =
         [ onInput SetTeamNameToAdd ]
         []
     , button
-        [ onClick AddTeam ]
+        [ onClick AddTeam
+        , class "primary center"
+        ]
         [ text "Add Team" ]
     ]
 
@@ -646,14 +648,16 @@ addGameView model =
     [ select
         [ onInput SetHomeTeamNameToAdd ]
         (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
-    , span
-        []
-        [ text " - " ]
+    , p
+        [ class "text-center" ]
+        [ text " versus " ]
     , select
         [ onInput SetAwayTeamNameToAdd ]
         (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
     , button
-        [ onClick AddGame ]
+        [ onClick AddGame
+        , class "primary center"
+        ]
         [ text "Add Game" ]
     ]
 
@@ -663,16 +667,18 @@ editGameView model =
     [ select
         [ onInput SetEditedHomeTeam ]
         (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedHomeTeam) ] [ text t.name ]) model.teams)
-    , span
-        []
-        [ text " - " ]
+    , p
+        [ class "text-center" ]
+        [ text " versus " ]
     , select
         [ onInput SetEditedAwayTeam
         , Html.Attributes.value model.editedAwayTeam.name
         ]
         (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedAwayTeam) ] [ text t.name ]) model.teams)
     , button
-        [ onClick EditGame ]
+        [ onClick EditGame
+        , class "primary center"
+        ]
         [ text "Edit Game" ]
     ]
 

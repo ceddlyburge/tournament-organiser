@@ -4,7 +4,8 @@ Sort ux
 
 - [x] Add link to Define Teams at top / sort out navigation
 - [x] sort out "Define Games" page
-- [ ] sort out "Add Game" page
+- [x] sort out "Add Game" page
+- [ ] Add an edit team pae
 - [ ] sort out "Edit Game" page
 - [ ] sort out Optimise page
 - [ ] maybe sort out history / routing if I can be bothered
