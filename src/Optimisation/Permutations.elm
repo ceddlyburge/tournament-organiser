@@ -1,6 +1,5 @@
 module Optimisation.Permutations exposing (permutations)
 
-import Html exposing (pre)
 import List.Extra
 
 
@@ -48,3 +47,48 @@ maybeCurtail : (a -> a -> Bool) -> Maybe a -> a -> Bool
 maybeCurtail curtail maybePreviousValue currentValue =
     Maybe.map2 curtail maybePreviousValue (Just currentValue)
         |> Maybe.withDefault False
+
+
+
+-- permutations : List a -> List (List a)
+-- permutations xs =
+--     let
+--         perms ts is =
+--             let
+--                 interleave xs_ r =
+--                     let
+--                         ( _, zs ) =
+--                             interleave_ is xs_ r
+--                     in
+--                     zs
+--                 interleave_ f_ ys_ r_ =
+--                     case ( f_, ys_, r_ ) of
+--                         ( _, [], r ) ->
+--                             ( ts, r )
+--                         ( f, y :: ys, r ) ->
+--                             let
+--                                 ( us, zs ) =
+--                                     interleave_ (f >> (::) y) ys r
+--                             in
+--                             ( y :: us, f {- t :: -} (y :: us) :: zs )
+--             in
+--             case ( ts, is ) of
+--                 ( [], _ ) ->
+--                     []
+--                 ( t__ :: ts__, is__ ) ->
+--                     List.foldr interleave (perms ts__ (is__ :: t__)) (permutations is__)
+--     in
+--     case xs of
+--         [ a ] ->
+--             [ [ a ] ]
+--         xs0 ->
+--             xs0 :: perms xs0 []
+-- permutations            :: [a] -> [[a]]
+-- permutations xs0        =  xs0 : perms xs0 []
+--   where
+--     perms []     _  = []
+--     perms (t:ts) is = foldr interleave (perms ts (t:is)) (permutations is)
+--       where interleave    xs     r = let (_,zs) = interleave' id xs r in zs
+--             interleave' _ []     r = (ts, r)
+--             interleave' f (y:ys) r = let (us,zs) = interleave' (f . (y:)) ys r
+--                                      in  (y:us, f (t:y:us) : zs)
