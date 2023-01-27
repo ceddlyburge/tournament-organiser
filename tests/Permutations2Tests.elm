@@ -7,99 +7,155 @@ import Test exposing (..)
 
 
 iteration1 =
-    Array.fromList [ Element 1 left, Element 2 left, Element 3 left, Element 4 left ]
+    Array.fromList [ Element 0 left, Element 1 left, Element 2 left, Element 3 left ]
 
 
 iteration2 =
-    Array.fromList [ Element 1 left, Element 2 left, Element 4 left, Element 3 left ]
+    Array.fromList [ Element 0 left, Element 1 left, Element 3 left, Element 2 left ]
 
 
 iteration3 =
-    Array.fromList [ Element 1 left, Element 4 left, Element 2 left, Element 3 left ]
+    Array.fromList [ Element 0 left, Element 3 left, Element 1 left, Element 2 left ]
 
 
 iteration4 =
-    Array.fromList [ Element 4 left, Element 1 left, Element 2 left, Element 3 left ]
+    Array.fromList [ Element 3 left, Element 0 left, Element 1 left, Element 2 left ]
 
 
 iteration5 =
-    Array.fromList [ Element 4 right, Element 1 left, Element 3 left, Element 2 left ]
+    Array.fromList [ Element 3 right, Element 0 left, Element 2 left, Element 1 left ]
 
 
 iteration6 =
-    Array.fromList [ Element 1 left, Element 4 right, Element 3 left, Element 2 left ]
+    Array.fromList [ Element 0 left, Element 3 right, Element 2 left, Element 1 left ]
 
 
 iteration7 =
-    Array.fromList [ Element 1 left, Element 3 left, Element 4 right, Element 2 left ]
+    Array.fromList [ Element 0 left, Element 2 left, Element 3 right, Element 1 left ]
 
 
 iteration8 =
-    Array.fromList [ Element 1 left, Element 3 left, Element 2 left, Element 4 right ]
+    Array.fromList [ Element 0 left, Element 2 left, Element 1 left, Element 3 right ]
 
 
 iteration9 =
-    Array.fromList [ Element 3 left, Element 1 left, Element 2 left, Element 4 left ]
+    Array.fromList [ Element 2 left, Element 0 left, Element 1 left, Element 3 left ]
 
 
 iteration10 =
-    Array.fromList [ Element 3 left, Element 1 left, Element 4 left, Element 2 left ]
+    Array.fromList [ Element 2 left, Element 0 left, Element 3 left, Element 1 left ]
 
 
 iteration11 =
-    Array.fromList [ Element 3 left, Element 4 left, Element 1 left, Element 2 left ]
+    Array.fromList [ Element 2 left, Element 3 left, Element 0 left, Element 1 left ]
 
 
 iteration12 =
-    Array.fromList [ Element 4 left, Element 3 left, Element 1 left, Element 2 left ]
+    Array.fromList [ Element 3 left, Element 2 left, Element 0 left, Element 1 left ]
 
 
 iteration13 =
-    Array.fromList [ Element 4 right, Element 3 right, Element 2 left, Element 1 left ]
+    Array.fromList [ Element 3 right, Element 2 right, Element 1 left, Element 0 left ]
 
 
 iteration14 =
-    Array.fromList [ Element 3 right, Element 4 right, Element 2 left, Element 1 left ]
+    Array.fromList [ Element 2 right, Element 3 right, Element 1 left, Element 0 left ]
 
 
 iteration15 =
-    Array.fromList [ Element 3 right, Element 2 left, Element 4 right, Element 1 left ]
+    Array.fromList [ Element 2 right, Element 1 left, Element 3 right, Element 0 left ]
 
 
 iteration16 =
-    Array.fromList [ Element 3 right, Element 2 left, Element 1 left, Element 4 right ]
+    Array.fromList [ Element 2 right, Element 1 left, Element 0 left, Element 3 right ]
 
 
 iteration17 =
-    Array.fromList [ Element 2 left, Element 3 right, Element 1 left, Element 4 left ]
+    Array.fromList [ Element 1 left, Element 2 right, Element 0 left, Element 3 left ]
 
 
 iteration18 =
-    Array.fromList [ Element 2 left, Element 3 right, Element 4 left, Element 1 left ]
+    Array.fromList [ Element 1 left, Element 2 right, Element 3 left, Element 0 left ]
 
 
 iteration19 =
-    Array.fromList [ Element 2 left, Element 4 left, Element 3 right, Element 1 left ]
+    Array.fromList [ Element 1 left, Element 3 left, Element 2 right, Element 0 left ]
 
 
 iteration20 =
-    Array.fromList [ Element 4 left, Element 2 left, Element 3 right, Element 1 left ]
+    Array.fromList [ Element 3 left, Element 1 left, Element 2 right, Element 0 left ]
 
 
 iteration21 =
-    Array.fromList [ Element 4 right, Element 2 left, Element 1 left, Element 3 right ]
+    Array.fromList [ Element 3 right, Element 1 left, Element 0 left, Element 2 right ]
 
 
 iteration22 =
-    Array.fromList [ Element 2 left, Element 4 right, Element 1 left, Element 3 right ]
+    Array.fromList [ Element 1 left, Element 3 right, Element 0 left, Element 2 right ]
 
 
 iteration23 =
-    Array.fromList [ Element 2 left, Element 1 left, Element 4 right, Element 3 right ]
+    Array.fromList [ Element 1 left, Element 0 left, Element 3 right, Element 2 right ]
 
 
 iteration24 =
-    Array.fromList [ Element 2 left, Element 1 left, Element 3 right, Element 4 right ]
+    Array.fromList [ Element 1 left, Element 0 left, Element 2 right, Element 3 right ]
+
+
+for : Int -> (a -> a) -> a -> a
+for =
+    let
+        for_ : Int -> Int -> (a -> a) -> a -> a
+        for_ i n f v =
+            if i < n then
+                for_ (i + 1) n f (f v)
+
+            else
+                v
+    in
+    for_ 0
+
+
+testNext : Test
+testNext =
+    describe "Next"
+        [ test "Iteration 1" <|
+            \_ ->
+                first [ "a", "b", "c" ]
+                    |> getState
+                    |> Maybe.map next
+                    |> Maybe.andThen getPermutation
+                    |> Expect.equal (Just [ "a", "c", "b" ])
+        , test "Iteration 2" <|
+            \_ ->
+                Just (first [ "a", "b", "c" ])
+                    |> for 2 (Maybe.andThen getState >> Maybe.map next)
+                    |> Maybe.andThen getPermutation
+                    |> Expect.equal (Just [ "c", "a", "b" ])
+        , test "Iteration 3" <|
+            \_ ->
+                Just (first [ "a", "b", "c" ])
+                    |> for 3 (Maybe.andThen getState >> Maybe.map next)
+                    |> Maybe.andThen getPermutation
+                    |> Expect.equal (Just [ "c", "b", "a" ])
+        , test "Iteration 4" <|
+            \_ ->
+                Just (first [ "a", "b", "c" ])
+                    |> for 4 (Maybe.andThen getState >> Maybe.map next)
+                    |> Maybe.andThen getPermutation
+                    |> Expect.equal (Just [ "b", "c", "a" ])
+        , test "Iteration 5" <|
+            \_ ->
+                Just (first [ "a", "b", "c" ])
+                    |> for 5 (Maybe.andThen getState >> Maybe.map next)
+                    |> Maybe.andThen getPermutation
+                    |> Expect.equal (Just [ "b", "a", "c" ])
+        , test "Iteration 6" <|
+            \_ ->
+                Just (first [ "a", "b", "c" ])
+                    |> for 6 (Maybe.andThen getState >> Maybe.map next)
+                    |> Expect.equal (Just Done)
+        ]
 
 
 testNextPermutation : Test
@@ -107,101 +163,100 @@ testNextPermutation =
     describe "Next Permutation"
         [ test "Iteration 1" <|
             \_ ->
-                nextPermutation (State iteration1 (Array.fromList [ "a", "b", "c", "d" ]))
-                    |> Expect.equal (Next (State iteration2 (Array.fromList [ "a", "b", "c", "d" ])) [ "a", "b", "d", "c" ])
-
-        -- , test "Iteration 2" <|
-        --     \_ ->
-        --         nextPermutation iteration2
-        --             |> Expect.equal iteration3
-        -- , test "Iteration 3" <|
-        --     \_ ->
-        --         nextPermutation iteration3
-        --             |> Expect.equal iteration4
-        -- , test "Iteration 4" <|
-        --     \_ ->
-        --         nextPermutation iteration4
-        --             |> Expect.equal iteration5
-        -- , test "Iteration 5" <|
-        --     \_ ->
-        --         nextPermutation iteration5
-        --             |> Expect.equal iteration6
-        -- , test "Iteration 6" <|
-        --     \_ ->
-        --         nextPermutation iteration6
-        --             |> Expect.equal iteration7
-        -- , test "Iteration 7" <|
-        --     \_ ->
-        --         nextPermutation iteration7
-        --             |> Expect.equal iteration8
-        -- , test "Iteration 8" <|
-        --     \_ ->
-        --         nextPermutation iteration8
-        --             |> Expect.equal iteration9
-        -- , test "Iteration 9" <|
-        --     \_ ->
-        --         nextPermutation iteration9
-        --             |> Expect.equal iteration10
-        -- , test "Iteration 10" <|
-        --     \_ ->
-        --         nextPermutation iteration10
-        --             |> Expect.equal iteration11
-        -- , test "Iteration 11" <|
-        --     \_ ->
-        --         nextPermutation iteration11
-        --             |> Expect.equal iteration12
-        -- , test "Iteration 12" <|
-        --     \_ ->
-        --         nextPermutation iteration12
-        --             |> Expect.equal iteration13
-        -- , test "Iteration 13" <|
-        --     \_ ->
-        --         nextPermutation iteration13
-        --             |> Expect.equal iteration14
-        -- , test "Iteration 14" <|
-        --     \_ ->
-        --         nextPermutation iteration14
-        --             |> Expect.equal iteration15
-        -- , test "Iteration 15" <|
-        --     \_ ->
-        --         nextPermutation iteration15
-        --             |> Expect.equal iteration16
-        -- , test "Iteration 16" <|
-        --     \_ ->
-        --         nextPermutation iteration16
-        --             |> Expect.equal iteration17
-        -- , test "Iteration 17" <|
-        --     \_ ->
-        --         nextPermutation iteration17
-        --             |> Expect.equal iteration18
-        -- , test "Iteration 18" <|
-        --     \_ ->
-        --         nextPermutation iteration18
-        --             |> Expect.equal iteration19
-        -- , test "Iteration 19" <|
-        --     \_ ->
-        --         nextPermutation iteration19
-        --             |> Expect.equal iteration20
-        -- , test "Iteration 20" <|
-        --     \_ ->
-        --         nextPermutation iteration20
-        --             |> Expect.equal iteration21
-        -- , test "Iteration 21" <|
-        --     \_ ->
-        --         nextPermutation iteration21
-        --             |> Expect.equal iteration22
-        -- , test "Iteration 22" <|
-        --     \_ ->
-        --         nextPermutation iteration22
-        --             |> Expect.equal iteration23
-        -- , test "Iteration 23" <|
-        --     \_ ->
-        --         nextPermutation iteration23
-        --             |> Expect.equal iteration24
-        -- , test "Iteration 24" <|
-        --     \_ ->
-        --         nextPermutation iteration24
-        --             |> Expect.equal iteration24
+                calculateNextPermutation iteration1
+                    |> Expect.equal (Just iteration2)
+        , test "Iteration 2" <|
+            \_ ->
+                calculateNextPermutation iteration2
+                    |> Expect.equal (Just iteration3)
+        , test "Iteration 3" <|
+            \_ ->
+                calculateNextPermutation iteration3
+                    |> Expect.equal (Just iteration4)
+        , test "Iteration 4" <|
+            \_ ->
+                calculateNextPermutation iteration4
+                    |> Expect.equal (Just iteration5)
+        , test "Iteration 5" <|
+            \_ ->
+                calculateNextPermutation iteration5
+                    |> Expect.equal (Just iteration6)
+        , test "Iteration 6" <|
+            \_ ->
+                calculateNextPermutation iteration6
+                    |> Expect.equal (Just iteration7)
+        , test "Iteration 7" <|
+            \_ ->
+                calculateNextPermutation iteration7
+                    |> Expect.equal (Just iteration8)
+        , test "Iteration 8" <|
+            \_ ->
+                calculateNextPermutation iteration8
+                    |> Expect.equal (Just iteration9)
+        , test "Iteration 9" <|
+            \_ ->
+                calculateNextPermutation iteration9
+                    |> Expect.equal (Just iteration10)
+        , test "Iteration 10" <|
+            \_ ->
+                calculateNextPermutation iteration10
+                    |> Expect.equal (Just iteration11)
+        , test "Iteration 11" <|
+            \_ ->
+                calculateNextPermutation iteration11
+                    |> Expect.equal (Just iteration12)
+        , test "Iteration 12" <|
+            \_ ->
+                calculateNextPermutation iteration12
+                    |> Expect.equal (Just iteration13)
+        , test "Iteration 13" <|
+            \_ ->
+                calculateNextPermutation iteration13
+                    |> Expect.equal (Just iteration14)
+        , test "Iteration 14" <|
+            \_ ->
+                calculateNextPermutation iteration14
+                    |> Expect.equal (Just iteration15)
+        , test "Iteration 15" <|
+            \_ ->
+                calculateNextPermutation iteration15
+                    |> Expect.equal (Just iteration16)
+        , test "Iteration 16" <|
+            \_ ->
+                calculateNextPermutation iteration16
+                    |> Expect.equal (Just iteration17)
+        , test "Iteration 17" <|
+            \_ ->
+                calculateNextPermutation iteration17
+                    |> Expect.equal (Just iteration18)
+        , test "Iteration 18" <|
+            \_ ->
+                calculateNextPermutation iteration18
+                    |> Expect.equal (Just iteration19)
+        , test "Iteration 19" <|
+            \_ ->
+                calculateNextPermutation iteration19
+                    |> Expect.equal (Just iteration20)
+        , test "Iteration 20" <|
+            \_ ->
+                calculateNextPermutation iteration20
+                    |> Expect.equal (Just iteration21)
+        , test "Iteration 21" <|
+            \_ ->
+                calculateNextPermutation iteration21
+                    |> Expect.equal (Just iteration22)
+        , test "Iteration 22" <|
+            \_ ->
+                calculateNextPermutation iteration22
+                    |> Expect.equal (Just iteration23)
+        , test "Iteration 23" <|
+            \_ ->
+                calculateNextPermutation iteration23
+                    |> Expect.equal (Just iteration24)
+        , test "Iteration 24" <|
+            \_ ->
+                calculateNextPermutation iteration24
+                    |> Expect.equal Nothing
         ]
 
 
@@ -211,7 +266,7 @@ testGetMobile =
         [ test "Iteration 1" <|
             \_ ->
                 calculateMobile iteration1
-                    |> Expect.equal (Just ( 3, Element 4 left ))
+                    |> Expect.equal (Just ( 3, Element 3 left ))
 
         -- , test "Iteration 2" <|
         --     \_ ->

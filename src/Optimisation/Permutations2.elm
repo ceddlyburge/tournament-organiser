@@ -2,12 +2,24 @@
 -- https://www.geeksforgeeks.org/johnson-trotter-algorithm/
 -- The haskell permutations function can't be expressed in Elm I think
 -- https://stackoverflow.com/questions/24484348/what-does-this-list-permutations-implementation-in-haskell-exactly-do
+-- Element, calculateNextPermutation, calculateMobile, left, right are exposed to make testing easier / better
 
 
-module Optimisation.Permutations2 exposing (..)
+module Optimisation.Permutations2 exposing (Element, Step(..), calculateMobile, calculateNextPermutation, first, getPermutation, getState, left, next, right)
 
 import Array exposing (Array)
+import Html.Attributes exposing (step)
 import Json.Decode exposing (array)
+
+
+
+-- todo: parse don't validate, although makes testing tricky
+
+
+type alias Element =
+    { initialPosition : Int
+    , direction : Bool
+    }
 
 
 type Step a
@@ -30,53 +42,68 @@ left =
     False
 
 
-
--- initialState : Array a -> State a
--- initialState permutation =
---     { permutation = permutation
---     , direction = Dict.fromList (Array.toList (Array.indexedMap (\i _ -> ( i, right )) permutation))
---     }
-
-
-type alias Element =
-    -- parse don't validate this I think
-    { initialPosition : Int
-    , direction : Bool
-    }
-
-
-nextPermutation : State a -> Step a
-nextPermutation state =
+first : List a -> Step a
+first initialList =
     let
-        maybeMobile =
-            calculateMobile state.permutation
+        initialArray =
+            Array.fromList initialList
     in
-    case maybeMobile of
+    Next
+        { permutation = Array.initialize (Array.length initialArray) (\index -> { initialPosition = index, direction = left })
+        , initial = initialArray
+        }
+        initialList
+
+
+getState step =
+    case step of
+        Done ->
+            Nothing
+
+        Next state _ ->
+            Just state
+
+
+getPermutation step =
+    case step of
+        Done ->
+            Nothing
+
+        Next _ permutation ->
+            Just permutation
+
+
+next : State a -> Step a
+next state =
+    case calculateNextPermutation state.permutation of
         Nothing ->
             Done
 
-        Just mobile ->
-            let
-                permutation =
-                    swapAndUpdateDirections mobile state.permutation
-            in
+        Just nextPermutation ->
             Next
-                { state | permutation = permutation }
-                (Array.map (\element -> Array.get (element.initialPosition - 1) state.initial) permutation
+                { state | permutation = nextPermutation }
+                (Array.map (\element -> Array.get element.initialPosition state.initial) nextPermutation
                     |> Array.toList
                     |> List.filterMap identity
                 )
 
 
-swapAndUpdateDirections : ( Int, Element ) -> Array Element -> Array Element
-swapAndUpdateDirections ( mobileIndex, mobileElement ) array =
+calculateNextPermutation : Array Element -> Maybe (Array Element)
+calculateNextPermutation previousPermutation =
+    Maybe.map
+        (swapAndUpdateDirections previousPermutation)
+        (calculateMobile previousPermutation)
+
+
+swapAndUpdateDirections : Array Element -> ( Int, Element ) -> Array Element
+swapAndUpdateDirections previousPermutation ( mobileIndex, mobileElement ) =
     let
         swapped =
             if mobileElement.direction == left then
-                swap mobileIndex (mobileIndex - 1) array
+                swap mobileIndex (mobileIndex - 1) previousPermutation
 
             else
-                swap mobileIndex (mobileIndex + 1) array
+                swap mobileIndex (mobileIndex + 1) previousPermutation
     in
     Array.map
         (\element ->
