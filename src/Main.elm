@@ -95,14 +95,21 @@ type UiState
     | OptimiseView
 
 
+type TournamentPreference
+    = StartLate
+    | FinishEarly
+    | TwoGamesRest
+
+
 type alias Team =
     { name : String
+    , tournamentPreference : TournamentPreference
     }
 
 
 vanillaTeam : Team
 vanillaTeam =
-    Team ""
+    Team "" TwoGamesRest
 
 
 
@@ -171,9 +178,9 @@ vanillaModel : Model
 vanillaModel =
     Model
         TeamsView
-        [ Team "Castle"
-        , Team "Blackwater"
-        , Team "ULU"
+        [ Team "Castle" StartLate
+        , Team "Blackwater" FinishEarly
+        , Team "ULU" TwoGamesRest
         ]
         []
         ""
@@ -245,7 +252,7 @@ update msg model =
             ( { model | teamNameToAdd = teamName }, Cmd.none )
 
         AddTeam ->
-            ( { model | teams = Team model.teamNameToAdd :: model.teams, uiState = TeamsView }, Cmd.none )
+            ( { model | teams = Team model.teamNameToAdd TwoGamesRest :: model.teams, uiState = TeamsView }, Cmd.none )
 
         -- Edit team
         ShowEditTeam team ->
@@ -351,7 +358,7 @@ update msg model =
 
                         -- if we add other things to Team (such as whether they want to leave early)
                         -- we will have to match up the OptimisedTeam's with the Team's
-                        , games = List.indexedMap (\index game -> Game (Team game.homeTeam.name) (Team game.awayTeam.name) (Just game.homeTeamPlayingConsecutively) (Just game.awayTeamPlayingConsecutively) index) optimisation.optimisedGameOrder.gameOrder
+                        , games = List.indexedMap (\index game -> Game (Team game.homeTeam.name TwoGamesRest) (Team game.awayTeam.name TwoGamesRest) (Just game.homeTeamPlayingConsecutively) (Just game.awayTeamPlayingConsecutively) index) optimisation.optimisedGameOrder.gameOrder
                       }
                     , Cmd.none
                     )
