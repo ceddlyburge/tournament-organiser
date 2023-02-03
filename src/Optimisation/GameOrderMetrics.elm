@@ -1,24 +1,27 @@
+-- todo: expose a bit less, although tests probably still want some things to be exposed.
+
+
 module Optimisation.GameOrderMetrics exposing (..)
 
 import Array exposing (Array)
 import List.Extra
-import Main exposing (Team, TournamentPreference(..))
 
 
+type TournamentPreference
+    = StartLate
+    | FinishEarly
+    | TwoGamesRest
 
-{-
-   Start late. what is metric?
-   - for each team metric is the index of the first game they play, higher is better
-   - for the tournament the lowest of all the team metrics (try and make as equal as possible). higher is still better
-   - only for teams that care
 
-   TwoGamesRest, what is metric and how compare to leaving early or starting late?
-   - percentage of how could it could ideally be
-    - (at least 2 games rest every time is 100%)
-    - late start ideal would be totalGames - (teamGames * 2)
-   - prob just calc the number of times it is ok now though.
+type alias Team =
+    { name : String
+    , tournamentPreference : TournamentPreference
+    }
 
--}
+
+vanillaTeam : Team
+vanillaTeam =
+    Team "" TwoGamesRest
 
 
 type alias GameOrderMetrics =
@@ -32,6 +35,8 @@ type alias GameOrderMetrics =
 type alias Game =
     { homeTeam : Team
     , awayTeam : Team
+
+    -- , order : Int -- don't think we should need this, try and remove it
     }
 
 
@@ -45,6 +50,8 @@ type alias AnalysedGame =
 
 
 type alias AnalysedTeam =
+    -- might be good to add team tournamentPreferenceScore here, but this type is used
+    -- when calculating it, so potentially a bit annoying
     { team : Team
     , firstGame : Int
     , lastGame : Int
@@ -111,8 +118,8 @@ analyseTeams games =
         indexTeam index game =
             [ IndexedTeam game.homeTeam index, IndexedTeam game.awayTeam index ]
 
-        calculateFirstAndLast : ( IndexedTeam, List IndexedTeam ) -> AnalysedTeam
-        calculateFirstAndLast ( indexedTeam, indexedTeams ) =
+        analyseTeam : ( IndexedTeam, List IndexedTeam ) -> AnalysedTeam
+        analyseTeam ( indexedTeam, indexedTeams ) =
             List.foldr
                 (\indexedTeam2 analysedTeam ->
                     { analysedTeam
@@ -134,7 +141,7 @@ analyseTeams games =
     List.indexedMap indexTeam games
         |> List.concat
         |> List.Extra.gatherWith (\team1 team2 -> team1.team == team2.team)
-        |> List.map calculateFirstAndLast
+        |> List.map analyseTeam
 
 
 calculateOccurencesOfTeamsPlayingConsecutiveGames : Array AnalysedGame -> Int
@@ -203,9 +210,12 @@ calculateFinishEarlyScore : Int -> Int -> AnalysedTeam -> Float
 calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeam =
     let
         earliestPossibleFinish =
-            teamNumberOfGames * 2 - 1
+            teamNumberOfGames * 2 - 1 - 1
+
+        latestPossibleFinish =
+            numberOfGames - 1
     in
-    toFloat (numberOfGames - analysedTeam.lastGame) / toFloat (numberOfGames - earliestPossibleFinish)
+    toFloat (latestPossibleFinish - analysedTeam.lastGame) / toFloat (latestPossibleFinish - earliestPossibleFinish)
 
 
 calculateTwoGamesRestScore : Int -> Int -> AnalysedTeam -> Float
@@ -215,6 +225,12 @@ calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam =
             teamNumberOfGames * 3 - 2
 
         minimumPossibleSingleGameBreaks =
-            numberOfGamesToAlwaysAllowTwoGameRests - numberOfGames
+            max (numberOfGamesToAlwaysAllowTwoGameRests - numberOfGames) 0
     in
-    1 - toFloat (analysedTeam.singleGameBreaks - minimumPossibleSingleGameBreaks) / toFloat (teamNumberOfGames - minimumPossibleSingleGameBreaks)
+    if teamNumberOfGames - 1 - minimumPossibleSingleGameBreaks == 0 then
+        1
+
+    else
+        1
+            - toFloat (analysedTeam.singleGameBreaks - minimumPossibleSingleGameBreaks)
+            / toFloat (teamNumberOfGames - 1 - minimumPossibleSingleGameBreaks)

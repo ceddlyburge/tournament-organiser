@@ -28,7 +28,8 @@ type Step a
 
 
 type alias State a =
-    { permutation : Array Element
+    { count : Int
+    , permutation : Array Element
     , initial : Array a
     }
 
@@ -49,7 +50,8 @@ first initialList =
             Array.fromList initialList
     in
     Next
-        { permutation = Array.initialize (Array.length initialArray) (\index -> { initialPosition = index, direction = left })
+        { count = 0
+        , permutation = Array.initialize (Array.length initialArray) (\index -> { initialPosition = index, direction = left })
         , initial = initialArray
         }
         initialList
@@ -81,7 +83,7 @@ next state =
 
         Just nextPermutation ->
             Next
-                { state | permutation = nextPermutation }
+                { state | permutation = nextPermutation, count = state.count + 1 }
                 (Array.map (\element -> Array.get element.initialPosition state.initial) nextPermutation
                     |> Array.toList
                     |> List.filterMap identity
