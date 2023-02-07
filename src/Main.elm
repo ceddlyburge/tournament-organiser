@@ -3,16 +3,17 @@ module Main exposing (..)
 -- import Json.Decode
 -- import Json.Decode.Pipeline
 -- import Json.Encode as Encode
+-- import Http
+-- import RemoteData exposing (WebData)
 
 import Browser
 import Html exposing (Html, a, button, div, h1, h2, header, img, input, li, main_, nav, option, p, section, select, span, text, ul)
 import Html.Attributes exposing (alt, class, src, value, width)
 import Html.Events exposing (onClick, onInput)
-import Http
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, vanillaTeam)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, curtailWhenTeamsPlayingConsecutively, vanillaTeam)
+import Optimisation.Permutations exposing (permutations)
 import Optimisation.Permutations2 exposing (Step(..), first, next)
-import RemoteData exposing (WebData)
 import Svg exposing (Svg)
 import Svg.Attributes exposing (in_)
 
@@ -107,28 +108,77 @@ type Optimisation
     | Finished GameOrderMetrics Int
 
 
-optimise : List Game -> Optimisation -> Optimisation
-optimise games optimisation =
-    case optimisation of
-        NotStarted ->
-            optimise2
+optimiseAllPermutations : List Game -> Optimisation -> Optimisation
+optimiseAllPermutations games _ =
+    let
+        gameOrders =
+            permutations curtailWhenTeamsPlayingConsecutively games
+
+        bestGameOrder =
+            List.foldr
+                (\gameOrder currentBestGameOrderMetrics ->
+                    let
+                        gameOrderMetrics =
+                            calculateGameOrderMetrics gameOrder
+                    in
+                    if
+                        gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                            < currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                            || (gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                                    == currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                                    && gameOrderMetrics.tournamentPreferenceScore
+                                    > currentBestGameOrderMetrics.tournamentPreferenceScore
+                               )
+                    then
+                        gameOrderMetrics
+
+                    else
+                        currentBestGameOrderMetrics
+                )
                 { analysedGames = []
                 , analysedTeams = []
-                , occurencesOfTeamsPlayingConsecutiveGames = 1
-                , tournamentPreferenceScore = -1
+                , occurencesOfTeamsPlayingConsecutiveGames = List.length games
+                , tournamentPreferenceScore = 0
                 }
-                1000
+                gameOrders
+    in
+    Finished bestGameOrder (factorial (List.length games))
+
+
+factorial : Int -> Int
+factorial n =
+    List.product (List.range 1 n)
+
+
+optimiseInChunks : List Game -> Optimisation -> Optimisation
+optimiseInChunks games optimisation =
+    case optimisation of
+        NotStarted ->
+            optimiseInChunks2
+                { analysedGames = []
+                , analysedTeams = []
+                , occurencesOfTeamsPlayingConsecutiveGames = List.length games
+                , tournamentPreferenceScore = 0
+                }
+                10000
                 (first games)
 
         InProgress gameOrderMetrics maxPermutation step ->
-            optimise2 gameOrderMetrics (maxPermutation + 1000) step
+            Debug.log "optimise2" (optimiseInChunks2 gameOrderMetrics (maxPermutation + 10000) step)
 
         Finished _ _ ->
-            optimisation
+            optimiseInChunks2
+                { analysedGames = []
+                , analysedTeams = []
+                , occurencesOfTeamsPlayingConsecutiveGames = List.length games
+                , tournamentPreferenceScore = 0
+                }
+                10000
+                (first games)
 
 
-optimise2 : GameOrderMetrics -> Int -> Step Game -> Optimisation
-optimise2 currentBestGameOrderMetrics maxPermutation step =
+optimiseInChunks2 : GameOrderMetrics -> Int -> Step Game -> Optimisation
+optimiseInChunks2 currentBestGameOrderMetrics maxPermutation step =
     case step of
         Done ->
             -- todo store total permutations count, maybe in the state
@@ -142,9 +192,12 @@ optimise2 currentBestGameOrderMetrics maxPermutation step =
                 nextBestGameOrderMetrics =
                     if
                         gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                            == 0
-                            && gameOrderMetrics.tournamentPreferenceScore
-                            > currentBestGameOrderMetrics.tournamentPreferenceScore
+                            < currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                            || (gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                                    == currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+                                    && gameOrderMetrics.tournamentPreferenceScore
+                                    > currentBestGameOrderMetrics.tournamentPreferenceScore
+                               )
                     then
                         gameOrderMetrics
 
@@ -155,7 +208,7 @@ optimise2 currentBestGameOrderMetrics maxPermutation step =
                 InProgress nextBestGameOrderMetrics maxPermutation step
 
             else
-                optimise2 nextBestGameOrderMetrics maxPermutation (next state)
+                optimiseInChunks2 nextBestGameOrderMetrics maxPermutation (next state)
 
 
 type alias Model =
@@ -191,11 +244,36 @@ vanillaModel : Model
 vanillaModel =
     Model
         TeamsView
-        [ Team "Castle" StartLate
-        , Team "Blackwater" FinishEarly
-        , Team "ULU" TwoGamesRest
+        [ Team "Castle" TwoGamesRest
+        , Team "ULU" FinishEarly
+        , Team "Surrey" TwoGamesRest
+        , Team "Braintree" TwoGamesRest
+        , Team "VKC" TwoGamesRest
+        , Team "St Albans" TwoGamesRest
+        , Team "East End" StartLate
         ]
-        []
+        [ Game (Team "ULU" FinishEarly) (Team "Braintree" TwoGamesRest)
+        , Game (Team "ULU" FinishEarly) (Team "Surrey" TwoGamesRest)
+        , Game (Team "ULU" FinishEarly) (Team "VKC" TwoGamesRest)
+        , Game (Team "ULU" FinishEarly) (Team "St Albans" TwoGamesRest)
+        , Game (Team "ULU" FinishEarly) (Team "East End" StartLate)
+        , Game (Team "ULU" FinishEarly) (Team "Castle" TwoGamesRest)
+        , Game (Team "Braintree" TwoGamesRest) (Team "Surrey" TwoGamesRest)
+        , Game (Team "Braintree" TwoGamesRest) (Team "VKC" TwoGamesRest)
+        , Game (Team "Braintree" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+        , Game (Team "Braintree" TwoGamesRest) (Team "East End" StartLate)
+        , Game (Team "Braintree" TwoGamesRest) (Team "Castle" TwoGamesRest)
+        , Game (Team "Surrey" TwoGamesRest) (Team "VKC" TwoGamesRest)
+        , Game (Team "Surrey" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+        , Game (Team "Surrey" TwoGamesRest) (Team "East End" StartLate)
+        , Game (Team "Surrey" TwoGamesRest) (Team "Castle" TwoGamesRest)
+        , Game (Team "VKC" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+        , Game (Team "VKC" TwoGamesRest) (Team "East End" StartLate)
+        , Game (Team "VKC" TwoGamesRest) (Team "Castle" TwoGamesRest)
+        , Game (Team "St Albans" TwoGamesRest) (Team "East End" StartLate)
+        , Game (Team "St Albans" TwoGamesRest) (Team "Castle" TwoGamesRest)
+        , Game (Team "East End" StartLate) (Team "Castle" TwoGamesRest)
+        ]
         ""
         vanillaTeam
         ""
@@ -358,7 +436,8 @@ update msg model =
             ( { model | uiState = OptimiseView }, Cmd.none )
 
         OptimiseGameOrder ->
-            ( { model | optimisation = optimise model.games model.optimisation }
+            ( { model | optimisation = optimiseAllPermutations model.games model.optimisation }
+              -- ( { model | optimisation = optimiseInChunks model.games model.optimisation }
             , Cmd.none
               -- , Http.post
               --     { url = "http://localhost:7071/api/OptimalGameOrder"

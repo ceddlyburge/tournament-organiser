@@ -1,6 +1,128 @@
-module Optimisation.Permutations exposing (permutations)
+module Optimisation.Permutations exposing (permutations, permutations2)
 
 import List.Extra
+
+
+
+{-
+   [1, 2, 3]
+
+   [(1, [2,3]), (2, [1, 3]), (3, [1,2])]
+   []
+   [[]]
+
+   [(2, [3])]
+   [1]
+   [[]]
+
+   [(3, [])]
+   [1,2]
+   [[]]
+
+   []
+   [1, 2, 3]
+   [[]]
+
+   []
+   []
+   [[1, 2, 3]]
+
+
+
+
+   [(2, [1, 3]), (3, [1,2])]
+   []
+   [[1, 2, 3]]
+-}
+-- todo: limit the number of loops before returning, make it customisable
+-- use it in the app, see if it is can analyse the games from se polo usefully.
+-- also need to fix up the bugs in the game order metrics
+-- todo, improve documentation somehow. Maybe using the run through of the comment above.
+
+
+permutations2 : Int -> (a -> a -> Bool) -> List a -> List (List a)
+permutations2 limit curtail xs =
+    permutations2Internal limit curtail (List.Extra.select xs) [] ( 0, [] )
+        |> Tuple.second
+
+
+permutations2Internal : Int -> (a -> a -> Bool) -> List ( a, List a ) -> List a -> ( Int, List (List a) ) -> ( Int, List (List a) )
+permutations2Internal limit curtail combinations currentPermutation ( iterationCount, finishedPermutations ) =
+    case currentPermutation of
+        -- If there is no permutation in progress
+        [] ->
+            case combinations of
+                -- and there are no combinations to analyse, then there is nothing more to do
+                [] ->
+                    ( iterationCount + 1, finishedPermutations )
+
+                x :: xs ->
+                    let
+                        -- and there are more combinations to analyse, start a new permutation with the first combination (x)
+                        ( depthFirstIterationCount, depthFirstFinishedPermutations ) =
+                            permutations2Internal limit curtail (List.Extra.select (Tuple.second x)) [ Tuple.first x ] ( iterationCount + 1, finishedPermutations )
+                    in
+                    -- and then start a new permutation with the remaining permuation (xs)
+                    permutations2Internal limit curtail xs [] ( depthFirstIterationCount + 1, depthFirstFinishedPermutations )
+
+        -- If there is a permutation in progress
+        xs ->
+            if maybeCurtail2 curtail (List.Extra.getAt 0 xs) (List.Extra.getAt 1 xs) then
+                ( iterationCount + 1, finishedPermutations )
+
+            else
+                case combinations of
+                    -- and there are no combinations left, then we are finished creating this permutation, so we add it
+                    [] ->
+                        ( iterationCount + 1, currentPermutation :: finishedPermutations )
+
+                    -- and there is one combination left, then analyse the last combination
+                    y :: [] ->
+                        permutations2Internal limit curtail (List.Extra.select (Tuple.second y)) (Tuple.first y :: xs) ( iterationCount + 1, finishedPermutations )
+
+                    -- and there are multiple combinations left, analyse the first combination (recursively), then the rest.
+                    y :: ys ->
+                        let
+                            ( depthFirstIterationCount, depthFirstFinishedPermutations ) =
+                                permutations2Internal limit curtail (List.Extra.select (Tuple.second y)) (Tuple.first y :: xs) ( iterationCount + 1, finishedPermutations )
+                        in
+                        permutations2Internal limit curtail ys xs ( depthFirstIterationCount + 1, depthFirstFinishedPermutations )
+
+
+
+-- depthFirstPermutations
+-- foldPermutations : (a -> a -> Bool) -> (b -> List a -> b) -> b -> List a -> b
+-- foldPermutations curtail fold initialValue xs =
+--     foldPermutationsInternal curtail fold Nothing initialValue xs
+-- foldPermutationsInternal : (a -> a -> Bool) -> (b -> List a -> b) -> Maybe a -> b -> List a -> b
+-- foldPermutationsInternal curtail fold previousValue accumulation xs_ =
+--     case xs_ of
+--         [] ->
+--             accumulation
+--         xs ->
+--             let
+--                 f ( y, ys ) accumulation2 =
+--                     if maybeCurtail curtail previousValue y then
+--                         accumulation2
+--                     else
+--                         List.map
+--                             (\permuation ->
+--                                 case ( ys, permuation ) of
+--                                     ( _ :: _, [] ) ->
+--                                         []
+--                                     ( _, zs ) ->
+--                                         y :: zs
+--                             )
+--                             foldPermutationsInternal curtail fold (Just y) accumulation2 ys
+--             in
+--             List.foldr f accumulation (List.Extra.select xs)
+-- foldl : (a -> b -> b) -> b -> List a -> b
+-- foldl func acc list =
+--     case list of
+--         [] ->
+--             acc
+--         x :: xs ->
+--             foldl func (func x acc) xs
 
 
 {-| Return the list of of all permutations of a list. The result is in lexicographic order.
@@ -43,6 +165,12 @@ permutationsInternal curtail previousValue xs_ =
                 |> List.filter (\list -> List.length list > 0)
 
 
+maybeCurtail2 : (a -> a -> Bool) -> Maybe a -> Maybe a -> Bool
+maybeCurtail2 curtail maybePreviousValue currentValue =
+    Maybe.map2 curtail maybePreviousValue currentValue
+        |> Maybe.withDefault False
+
+
 maybeCurtail : (a -> a -> Bool) -> Maybe a -> a -> Bool
 maybeCurtail curtail maybePreviousValue currentValue =
     Maybe.map2 curtail maybePreviousValue (Just currentValue)
@@ -50,6 +178,8 @@ maybeCurtail curtail maybePreviousValue currentValue =
 
 
 
+-- attempt at converting the haskell permutation function, but I don't think it
+-- is representable in Elm
 -- permutations : List a -> List (List a)
 -- permutations xs =
 --     let

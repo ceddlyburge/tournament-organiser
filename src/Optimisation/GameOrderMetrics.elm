@@ -104,6 +104,11 @@ playing team game =
     game.homeTeam == team || game.awayTeam == team
 
 
+curtailWhenTeamsPlayingConsecutively : Game -> Game -> Bool
+curtailWhenTeamsPlayingConsecutively game1 game2 =
+    playing game1.homeTeam game2 || playing game1.awayTeam game2
+
+
 maybePlaying : Team -> Maybe Game -> Bool
 maybePlaying team maybeGame =
     Maybe.map
