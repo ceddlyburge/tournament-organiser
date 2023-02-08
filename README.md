@@ -1,54 +1,37 @@
 # todo
 
-Sort ux
-
-- [x] Add link to Define Teams at top / sort out navigation
-- [x] sort out "Define Games" page
-- [x] sort out "Add Game" page
-- [ ] Add an edit team pae
-- [ ] sort out "Edit Game" page
-- [ ] sort out Optimise page
-- [ ] maybe sort out history / routing if I can be bothered
-- [ ] Do hover over for Add team button and delete buttons
-- [ ] Improve display of loading graphic (maybe grey out screen and overlay or similar)
-- [ ] Improve display of api failure (maybe it pops up and then fades away)
-- [ ] Improve display of optimisation message. Only show if there is one, and put it in the right place (above list). Remove it if the list is reordered (when reordering is possible)
-- Add "Analyse" button, to show the optimsation metrics for the currently displayed game order
-- [ ] add error handling for json decoding / mapping
-  - [ ] cant decode
-  - [ ] decode a team or game that doesn't currently exist
-- [ ] do drag drop / touch reordering if possible
-- [ ] add routing probably. not sure can be arsed though.
-- [ ] maybe assign each team a colour to make visual comparison easier, in same way that people do in google spreadsheet, might be a faff though, and colours will make the design hard / not work. Maybe there is a better idea that doesn't use colours
+- [x] make sure the gameOrderMetrics calculation works properly
+- [ ] optimised games shouldn't be green. red is still good for back to back games though.
+- [ ] finish optimise page, with good copy and suchlike. Maybe say how it is compared to the tournament requests.
+- [ ] show a message when no good permutation found. Maybe try again with no curtailment, but still with the limit.
+- [ ] enable / disable routes / links when relevant
+- [ ] choose tournament preference when adding / editing teams
+- [ ] Add an edit team page
+- [ ] remove optimise in chunks. it was a good idea, but doesn't work out in practice. Update the optimisation type / model to reflect what it now does.
 - [ ] anaylse problem edge cases
-
   - attempt to add / edit such that there are identical teams - not allowed
   - attempt to add / edit such that there are identical games - this is a possibility and is allowed
   - attempt to add a game where a team plays itself - not allowed
   - attempt to add a game without the teams defined
   - want to be able to cancel editing
   - attempt to add a team with no name
-  - optimisation can't create an optimised order. It returns a bool for this, but maybe returns an empty list as well, so need to make sure that we don't wipe our our existing game list in this case
+  - optimisation can't create an optimised order.
+- [ ] and a paste option to games page, so can paste from excel. It needs to work out the teams.
+- [ ] maybe same for teams page, and / or think about which should come first
+- [ ] add a copy option to the results page
+- [ ] maybe sort out history / routing if I can be bothered
+- [ ] do drag drop / touch reordering if possible
+- [ ] maybe have an info / help button on each page (could also have a button to auto fill some stuff)
 
-- [ ] before release: remove default initial list of teams before release
-- [ ] much later: teams can specify whether they want to leave early, arrive late, get games over with as quickly as possible or get as much rest as possible between games. This requires a change to the azure function to be handle the input.
-- [ ] not much later: reset / recreate a list of everyone plays everyone games if requested
-
-- [x] highlight teams playing back to back. The api tells us this, but maybe we should work it out ourselves. It isn't super complicated, and avoids repeated calls to the api. However, we might want other stats from the optimisation, such as how many teams are playing back to back, and how well the optimisation meets the requirements. hmmm. I think adding an "Analyse" button, and corresponding endpoint on the azure function is the best way to do this.
-- [ ] allow reordering
-- [ ] maybe later: run the optimisation locally, instead of as an azure function. Blazor doesn't look easy, and has a very big download size so not viable I think. Rewriting in Elm is probably better (and maybe creating a package), but would be a faff. Maybe best just to leave it as an azure function, although it could run up costs, and comes with network edge cases to deal with, which running locally cannot. Not sure how it would be environmentally. Data centres are optimised and use less power generally, but there is the added network cost.
-
-Sort dx
+Sort dx. This is all optional and not sure I can be bothered
 
 - [ ] add view type
 - [ ] split in to smaller files, probably one per uistate, split up the Msg and Model along these lines as well, so top level one is simple
-- [ ] split out code related to the azure function / api
-- [ ] use opaque type / parse dont validate for game list (and hide order as an implentation detail)
+- [ ] use opaque type / parse dont validate where possible, although testing can be an issue
 - [ ] add some tests, probably cypress, but also unit tests for anything complicated enough to warrant it
 
 Release
 
-- [ ] Release azure function
-- [ ] Release app to netlify
-- [ ] Azure function to require a token
-- [ ] Add netlify function / aws lambda to hide the token for the azure function and use
+- [ ] create a build, could simply be just on netlify? Maybe something else is better though.
+- [ ] remove default initial list of teams before release
+- [ ] Release app to netlify or similar

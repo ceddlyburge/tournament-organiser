@@ -1,73 +1,20 @@
 module Main exposing (..)
 
--- import Json.Decode
--- import Json.Decode.Pipeline
--- import Json.Encode as Encode
--- import Http
--- import RemoteData exposing (WebData)
-
 import Browser
-import Html exposing (Html, a, button, div, h1, h2, header, img, input, li, main_, nav, option, p, section, select, span, text, ul)
-import Html.Attributes exposing (alt, class, src, value, width)
+import Html exposing (Html, a, button, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
+import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, curtailWhenTeamsPlayingConsecutively, vanillaTeam)
-import Optimisation.Permutations exposing (permutations)
+import Optimisation.Permutations exposing (permutations2)
 import Optimisation.Permutations2 exposing (Step(..), first, next)
-import Svg exposing (Svg)
-import Svg.Attributes exposing (in_)
+import String exposing (fromFloat)
+import Svg
+import Svg.Attributes
 
 
 
 ---- MODEL ----
--- type to represent the result of the optimization api
--- type alias Optimisation =
---     { optimisedGameOrder : OptimisedGameOrder
---     , pragmatisationLevel : Int
---     , optimisationMessage : String
---     , optimisedGameOrderAvailable : Bool
---     }
--- type alias OptimisedGameOrder =
---     { gameOrder : List OptimisedGame
---     , occurencesOfTeamsPlayingConsecutiveGames : Int
---     , maxPlayingInConsecutiveGames : Int
---     , gamesNotPlayedBetweenFirstAndLast : Int
---     }
--- type alias OptimisedTeam =
---     { name : String
---     }
--- type alias OptimisedGame =
---     { homeTeamPlayingConsecutively : Bool
---     , awayTeamPlayingConsecutively : Bool
---     , homeTeam : OptimisedTeam
---     , awayTeam : OptimisedTeam
---     }
--- decodeOptimisation : Json.Decode.Decoder Optimisation
--- decodeOptimisation =
---     Json.Decode.succeed Optimisation
---         |> Json.Decode.Pipeline.required "optimisedGameOrder" decodeOptimisedGames
---         |> Json.Decode.Pipeline.required "pragmatisationLevel" Json.Decode.int
---         |> Json.Decode.Pipeline.required "optimisationMessage" Json.Decode.string
---         |> Json.Decode.Pipeline.required "optimisedGameOrderAvailable" Json.Decode.bool
--- decodeOptimisedGames : Json.Decode.Decoder OptimisedGameOrder
--- decodeOptimisedGames =
---     Json.Decode.succeed OptimisedGameOrder
---         |> Json.Decode.Pipeline.required "gameOrder" (Json.Decode.list decodeOptimisedGame)
---         |> Json.Decode.Pipeline.required "occurencesOfTeamsPlayingConsecutiveGames" Json.Decode.int
---         |> Json.Decode.Pipeline.required "maxPlayingInConsecutiveGames" Json.Decode.int
---         |> Json.Decode.Pipeline.required "gamesNotPlayedBetweenFirstAndLast" Json.Decode.int
--- decodeOptimisedGame : Json.Decode.Decoder OptimisedGame
--- decodeOptimisedGame =
---     Json.Decode.succeed OptimisedGame
---         |> Json.Decode.Pipeline.required "homeTeamPlayingConsecutively" Json.Decode.bool
---         |> Json.Decode.Pipeline.required "awayTeamPlayingConsecutively" Json.Decode.bool
---         |> Json.Decode.Pipeline.required "homeTeam" decodeOptimisedTeam
---         |> Json.Decode.Pipeline.required "awayTeam" decodeOptimisedTeam
--- decodeOptimisedTeam : Json.Decode.Decoder OptimisedTeam
--- decodeOptimisedTeam =
---     Json.Decode.succeed OptimisedTeam
---         |> Json.Decode.Pipeline.required "name" Json.Decode.string
--- rest of model
 
 
 type UiState
@@ -87,21 +34,6 @@ vanillaGame =
         vanillaTeam
 
 
-
--- Nothing
--- Nothing
--- 0
--- encodeGame : Game -> Encode.Value
--- encodeGame game =
---     Encode.object
---         [ ( "HomeTeam", Encode.string game.homeTeam.name )
---         , ( "AwayTeam", Encode.string game.awayTeam.name )
---         ]
--- encodeGames : List Game -> Encode.Value
--- encodeGames games =
---     Encode.list encodeGame games
-
-
 type Optimisation
     = NotStarted
     | InProgress GameOrderMetrics Int (Step Game)
@@ -109,10 +41,25 @@ type Optimisation
 
 
 optimiseAllPermutations : List Game -> Optimisation -> Optimisation
-optimiseAllPermutations games _ =
+optimiseAllPermutations games optimisation =
     let
+        -- todo, pass calculateGameOrderMetrics to the analyser, so don't have
+        -- to store all the gameOrders, and can instead analyse them as we
+        -- find them. Less memory usage. And probably a little bit faster.
         gameOrders =
-            permutations curtailWhenTeamsPlayingConsecutively games
+            permutations2 100000 curtailWhenTeamsPlayingConsecutively games
+
+        initialBestGameOrderMetrics =
+            case optimisation of
+                Finished gameOrderMetrics _ ->
+                    gameOrderMetrics
+
+                _ ->
+                    { analysedGames = []
+                    , analysedTeams = []
+                    , occurencesOfTeamsPlayingConsecutiveGames = List.length games
+                    , tournamentPreferenceScore = 0
+                    }
 
         bestGameOrder =
             List.foldr
@@ -135,11 +82,7 @@ optimiseAllPermutations games _ =
                     else
                         currentBestGameOrderMetrics
                 )
-                { analysedGames = []
-                , analysedTeams = []
-                , occurencesOfTeamsPlayingConsecutiveGames = List.length games
-                , tournamentPreferenceScore = 0
-                }
+                initialBestGameOrderMetrics
                 gameOrders
     in
     Finished bestGameOrder (factorial (List.length games))
@@ -234,9 +177,6 @@ type alias Model =
 
     -- optimise
     , optimisation : Optimisation
-
-    -- call to optimize api
-    -- , optimisation : WebData Optimisation
     }
 
 
@@ -436,33 +376,19 @@ update msg model =
             ( { model | uiState = OptimiseView }, Cmd.none )
 
         OptimiseGameOrder ->
-            ( { model | optimisation = optimiseAllPermutations model.games model.optimisation }
+            let
+                games =
+                    case model.optimisation of
+                        Finished gameOrderMetrics _ ->
+                            List.map .game gameOrderMetrics.analysedGames
+
+                        _ ->
+                            model.games
+            in
+            ( { model | optimisation = optimiseAllPermutations games model.optimisation }
               -- ( { model | optimisation = optimiseInChunks model.games model.optimisation }
             , Cmd.none
-              -- , Http.post
-              --     { url = "http://localhost:7071/api/OptimalGameOrder"
-              --     , body = encodeGames model.games |> Http.jsonBody
-              --     , expect = Http.expectJson (RemoteData.fromResult >> OptimiseGameOrderResponse) decodeOptimisation
-              --     }
             )
-
-
-
--- OptimiseGameOrderResponse response ->
---     case response of
---         RemoteData.Success optimisation ->
---             ( { model
---                 | optimisation = response
---                 -- if we add other things to Team (such as whether they want to leave early)
---                 -- we will have to match up the OptimisedTeam's with the Team's
---                 , games = List.indexedMap (\index game -> Game (Team game.homeTeam.name TwoGamesRest) (Team game.awayTeam.name TwoGamesRest) (Just game.homeTeamPlayingConsecutively) (Just game.awayTeamPlayingConsecutively) index) optimisation.optimisedGameOrder.gameOrder
---               }
---             , Cmd.none
---             )
---         _ ->
---             ( { model | optimisation = response }
---             , Cmd.none
---             )
 
 
 initializeGames : List Team -> List Game -> List Game
@@ -684,26 +610,6 @@ gameView game =
         ]
 
 
-
--- optimiseView : Model -> List (Html Msg)
--- optimiseView model =
--- optimiseView : Model -> List (Html Msg)
--- optimiseView model =
---     case model.optimisation of
---         RemoteData.Success optimisation ->
---             p [] [ text optimisation.optimisationMessage ] :: optimisedGameOrderView model
---         RemoteData.NotAsked ->
---             optimisedGameOrderView model
---         RemoteData.Loading ->
---             [ loading ]
---         RemoteData.Failure error ->
---             p [] [ text (httpErrorMessage error) ] :: optimisedGameOrderView model
--- type Optimisation
---     = NotStarted
---     | InProgress GameOrderMetrics Int (Step Game)
---     | Finished GameOrderMetrics Int
-
-
 optimiseView : Model -> List (Html Msg)
 optimiseView model =
     button
@@ -726,9 +632,20 @@ optimisationView optimisation =
             ]
 
         Finished gameOrderMetrics totalPermutations ->
-            [ p [] [ text "Finished" ]
-            , optimisedGamesView gameOrderMetrics.analysedGames
-            ]
+            optimisationExplanation optimisation
+                ++ [ optimisedGamesView gameOrderMetrics.analysedGames
+                   ]
+
+
+optimisationExplanation : Optimisation -> List (Html Msg)
+optimisationExplanation optimisation =
+    case optimisation of
+        Finished gameOrderMetrics totalPermutations ->
+            p [ class "text-center" ] [ text ("Finished. Tournament preference score: " ++ fromFloat gameOrderMetrics.tournamentPreferenceScore) ]
+                :: List.map (\analysedTeam -> p [ class "text-center " ] [ text (analysedTeam.team.name ++ fromFloat analysedTeam.tournamentPreferenceScore) ]) gameOrderMetrics.analysedTeams
+
+        _ ->
+            []
 
 
 optimisedGamesView : List AnalysedGame -> Html Msg
@@ -744,13 +661,13 @@ optimisedGameView game =
         [ class "center" ]
         [ span
             (consecutiveGameClass game.homeTeamPlayingConsecutively)
-            [ text game.homeTeam.name ]
+            [ text game.game.homeTeam.name ]
         , span
             []
             [ text "\u{00A0}-\u{00A0}" ]
         , span
             (consecutiveGameClass game.awayTeamPlayingConsecutively)
-            [ text game.awayTeam.name ]
+            [ text game.game.awayTeam.name ]
         ]
 
 
@@ -818,19 +735,6 @@ loading =
 
 
 
--- httpErrorMessage : Http.Error -> String
--- httpErrorMessage error =
---     case error of
---         Http.Timeout ->
---             "Timeout, maybe there is no connection to the internet, or the optimisation server is down"
---         Http.NetworkError ->
---             "Network error, maybe there is no connection to the internet, or the optimisation server is down"
---         Http.BadBody message ->
---             "Unexpected Body. Hmmm, there is probably a problem in my configuration, please create an issue. Error returned: " ++ message
---         Http.BadStatus statusCode ->
---             "Bad Response. Hmmm, there is probably a problem in my configuration, or there is a problem with the optimisation server. Please create an issue. Status returned: " ++ String.fromInt statusCode
---         Http.BadUrl message ->
---             "Bad Url. Hmmm, there is probably a problem in my configuration, please create an issue. Error returned: " ++ message
 ---- PROGRAM ----
 
 

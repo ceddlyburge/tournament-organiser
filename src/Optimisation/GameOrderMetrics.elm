@@ -11,6 +11,7 @@ type TournamentPreference
     = StartLate
     | FinishEarly
     | TwoGamesRest
+    | NoPreference
 
 
 type alias Team =
@@ -35,27 +36,30 @@ type alias GameOrderMetrics =
 type alias Game =
     { homeTeam : Team
     , awayTeam : Team
-
-    -- , order : Int -- don't think we should need this, try and remove it
     }
 
 
 type alias AnalysedGame =
-    -- use game: Game instead
-    { homeTeam : Team
-    , awayTeam : Team
+    { game : Game
     , homeTeamPlayingConsecutively : Bool
     , awayTeamPlayingConsecutively : Bool
     }
 
 
-type alias AnalysedTeam =
-    -- might be good to add team tournamentPreferenceScore here, but this type is used
-    -- when calculating it, so potentially a bit annoying
+type alias AnalysedTeamFirstPass =
     { team : Team
     , firstGame : Int
     , lastGame : Int
     , singleGameBreaks : Int
+    }
+
+
+type alias AnalysedTeam =
+    { team : Team
+    , firstGame : Int
+    , lastGame : Int
+    , singleGameBreaks : Int
+    , tournamentPreferenceScore : Float
     }
 
 
@@ -71,13 +75,19 @@ calculateGameOrderMetrics games =
         analysedGames =
             analyseGames (Array.fromList games)
 
-        analysedTeams =
+        analysedTeamsFirstPass =
             analyseTeams games
+
+        analysedTeams =
+            calculateTournamentPreferenceScores games analysedTeamsFirstPass
+
+        tournamentPreferenceScore =
+            List.map .tournamentPreferenceScore analysedTeams |> List.minimum |> Maybe.withDefault 0
     in
     { analysedGames = analysedGames |> Array.toList
     , analysedTeams = analysedTeams
     , occurencesOfTeamsPlayingConsecutiveGames = calculateOccurencesOfTeamsPlayingConsecutiveGames analysedGames
-    , tournamentPreferenceScore = calculateTournamentPreferenceScore games analysedTeams
+    , tournamentPreferenceScore = tournamentPreferenceScore
     }
 
 
@@ -90,10 +100,7 @@ analyseGames games =
 
 analyseGame : Maybe Game -> Game -> Maybe Game -> AnalysedGame
 analyseGame previousGame game nextGame =
-    { homeTeam =
-        game.homeTeam
-    , awayTeam =
-        game.awayTeam
+    { game = game
     , homeTeamPlayingConsecutively = maybePlaying game.homeTeam previousGame || maybePlaying game.homeTeam nextGame
     , awayTeamPlayingConsecutively = maybePlaying game.awayTeam previousGame || maybePlaying game.awayTeam nextGame
     }
@@ -117,13 +124,13 @@ maybePlaying team maybeGame =
         |> Maybe.withDefault False
 
 
-analyseTeams : List Game -> List AnalysedTeam
+analyseTeams : List Game -> List AnalysedTeamFirstPass
 analyseTeams games =
     let
         indexTeam index game =
             [ IndexedTeam game.homeTeam index, IndexedTeam game.awayTeam index ]
 
-        analyseTeam : ( IndexedTeam, List IndexedTeam ) -> AnalysedTeam
+        analyseTeam : ( IndexedTeam, List IndexedTeam ) -> AnalysedTeamFirstPass
         analyseTeam ( indexedTeam, indexedTeams ) =
             List.foldr
                 (\indexedTeam2 analysedTeam ->
@@ -140,7 +147,7 @@ analyseTeams games =
                                   )
                     }
                 )
-                (AnalysedTeam indexedTeam.team indexedTeam.gameIndex indexedTeam.gameIndex 0)
+                (AnalysedTeamFirstPass indexedTeam.team indexedTeam.gameIndex indexedTeam.gameIndex 0)
                 indexedTeams
     in
     List.indexedMap indexTeam games
@@ -172,37 +179,66 @@ calculateOccurencesOfTeamsPlayingConsecutiveGames analysedGames =
         // 2
 
 
-calculateTournamentPreferenceScore : List Game -> List AnalysedTeam -> Float
-calculateTournamentPreferenceScore games analysedTeams =
+calculateTournamentPreferenceScores : List Game -> List AnalysedTeamFirstPass -> List AnalysedTeam
+calculateTournamentPreferenceScores games analysedTeams =
     List.map
         (calculateTeamTournamentPreferenceScore games)
         analysedTeams
-        |> List.minimum
-        |> Maybe.withDefault 0
 
 
-calculateTeamTournamentPreferenceScore : List Game -> AnalysedTeam -> Float
-calculateTeamTournamentPreferenceScore games analysedTeam =
+calculateTeamTournamentPreferenceScore : List Game -> AnalysedTeamFirstPass -> AnalysedTeam
+calculateTeamTournamentPreferenceScore games analysedTeamFirstPass =
     let
         teamNumberOfGames =
-            List.filter (\game -> playing analysedTeam.team game) games |> List.length
+            List.filter (\game -> playing analysedTeamFirstPass.team game) games |> List.length
 
         numberOfGames =
             List.length games
+
+        score =
+            case analysedTeamFirstPass.team.tournamentPreference of
+                StartLate ->
+                    calculateStartLateScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+
+                FinishEarly ->
+                    calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+
+                TwoGamesRest ->
+                    calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+
+                NoPreference ->
+                    1
+
+        analysedTeam =
+            { team = analysedTeamFirstPass.team
+            , firstGame = analysedTeamFirstPass.firstGame
+            , lastGame = analysedTeamFirstPass.lastGame
+            , singleGameBreaks = analysedTeamFirstPass.singleGameBreaks
+            , tournamentPreferenceScore = score
+            }
     in
     -- Scores should all return a value between 0 and 1
-    case analysedTeam.team.tournamentPreference of
-        StartLate ->
-            calculateStartLateScore teamNumberOfGames numberOfGames analysedTeam
+    if score < 0 || score > 1 then
+        let
+            _ =
+                Debug.log "score" score
 
-        FinishEarly ->
-            calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeam
+            _ =
+                Debug.log "games" games
 
-        TwoGamesRest ->
-            calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam
+            _ =
+                Debug.log "analysedTeams" analysedTeam
+
+            _ =
+                Debug.log "teamNumberOfGames" teamNumberOfGames
+        in
+        analysedTeam
+
+    else
+        analysedTeam
 
 
-calculateStartLateScore : Int -> Int -> AnalysedTeam -> Float
+calculateStartLateScore : Int -> Int -> AnalysedTeamFirstPass -> Float
 calculateStartLateScore teamNumberOfGames numberOfGames analysedTeam =
     let
         latestPossibleStart =
@@ -211,7 +247,7 @@ calculateStartLateScore teamNumberOfGames numberOfGames analysedTeam =
     toFloat analysedTeam.firstGame / toFloat latestPossibleStart
 
 
-calculateFinishEarlyScore : Int -> Int -> AnalysedTeam -> Float
+calculateFinishEarlyScore : Int -> Int -> AnalysedTeamFirstPass -> Float
 calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeam =
     let
         earliestPossibleFinish =
@@ -223,7 +259,7 @@ calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeam =
     toFloat (latestPossibleFinish - analysedTeam.lastGame) / toFloat (latestPossibleFinish - earliestPossibleFinish)
 
 
-calculateTwoGamesRestScore : Int -> Int -> AnalysedTeam -> Float
+calculateTwoGamesRestScore : Int -> Int -> AnalysedTeamFirstPass -> Float
 calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam =
     let
         numberOfGamesToAlwaysAllowTwoGameRests =
