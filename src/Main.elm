@@ -642,7 +642,7 @@ optimisationExplanation optimisation =
     case optimisation of
         Finished gameOrderMetrics totalPermutations ->
             p [ class "text-center" ] [ text ("Finished. Tournament preference score: " ++ fromFloat gameOrderMetrics.tournamentPreferenceScore) ]
-                :: List.map (\analysedTeam -> p [ class "text-center " ] [ text (analysedTeam.team.name ++ fromFloat analysedTeam.tournamentPreferenceScore) ]) gameOrderMetrics.analysedTeams
+                :: List.map (\analysedTeam -> p [ class "text-center " ] [ text (analysedTeam.team.name ++ ", " ++ Debug.toString analysedTeam.team.tournamentPreference ++ ", " ++ fromFloat analysedTeam.tournamentPreferenceScore) ]) gameOrderMetrics.analysedTeams
 
         _ ->
             []

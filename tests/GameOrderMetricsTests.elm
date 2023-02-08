@@ -159,6 +159,33 @@ all =
                     (AnalysedTeamFirstPass avonTwoGamesRest 0 2 1)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
+        , test "Avon have one single game rest" <|
+            \_ ->
+                analyseTeams
+                    [ Game avonTwoGamesRest anyTeam
+                    , anyGame
+                    , anyGame
+                    , Game anyTeam avonTwoGamesRest
+                    , anyGame
+                    , anyGame
+                    , anyGame
+                    , anyGame
+                    , Game anyTeam avonTwoGamesRest
+                    , anyGame
+                    , anyGame
+                    , anyGame
+                    , Game anyTeam avonTwoGamesRest
+                    , anyGame
+                    , anyGame
+                    , Game anyTeam avonTwoGamesRest
+                    , anyGame
+                    , Game anyTeam avonTwoGamesRest
+                    ]
+                    |> List.filter (\analysedTeam -> analysedTeam.team == avonTwoGamesRest)
+                    |> List.head
+                    |> Maybe.map .singleGameBreaks
+                    |> Maybe.withDefault -1
+                    |> Expect.equal 1
         , test "Tournament preference score" <|
             \_ ->
                 -- castle finish as early as they can, so 1

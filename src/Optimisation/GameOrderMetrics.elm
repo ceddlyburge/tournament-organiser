@@ -129,31 +129,32 @@ analyseTeams games =
     let
         indexTeam index game =
             [ IndexedTeam game.homeTeam index, IndexedTeam game.awayTeam index ]
-
-        analyseTeam : ( IndexedTeam, List IndexedTeam ) -> AnalysedTeamFirstPass
-        analyseTeam ( indexedTeam, indexedTeams ) =
-            List.foldr
-                (\indexedTeam2 analysedTeam ->
-                    { analysedTeam
-                        | firstGame = min analysedTeam.firstGame indexedTeam2.gameIndex
-                        , lastGame = max analysedTeam.lastGame indexedTeam2.gameIndex
-                        , singleGameBreaks =
-                            analysedTeam.singleGameBreaks
-                                + (if indexedTeam2.gameIndex - analysedTeam.lastGame <= 2 then
-                                    1
-
-                                   else
-                                    0
-                                  )
-                    }
-                )
-                (AnalysedTeamFirstPass indexedTeam.team indexedTeam.gameIndex indexedTeam.gameIndex 0)
-                indexedTeams
     in
     List.indexedMap indexTeam games
         |> List.concat
         |> List.Extra.gatherWith (\team1 team2 -> team1.team == team2.team)
         |> List.map analyseTeam
+
+
+analyseTeam : ( IndexedTeam, List IndexedTeam ) -> AnalysedTeamFirstPass
+analyseTeam ( indexedTeam, indexedTeams ) =
+    List.foldl
+        (\indexedTeam2 analysedTeam ->
+            { analysedTeam
+                | firstGame = min analysedTeam.firstGame indexedTeam2.gameIndex
+                , lastGame = max analysedTeam.lastGame indexedTeam2.gameIndex
+                , singleGameBreaks =
+                    analysedTeam.singleGameBreaks
+                        + (if indexedTeam2.gameIndex - analysedTeam.lastGame <= 2 then
+                            1
+
+                           else
+                            0
+                          )
+            }
+        )
+        (AnalysedTeamFirstPass indexedTeam.team indexedTeam.gameIndex indexedTeam.gameIndex 0)
+        indexedTeams
 
 
 calculateOccurencesOfTeamsPlayingConsecutiveGames : Array AnalysedGame -> Int
