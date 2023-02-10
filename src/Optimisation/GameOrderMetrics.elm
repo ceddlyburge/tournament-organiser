@@ -5,6 +5,7 @@ module Optimisation.GameOrderMetrics exposing (..)
 
 import Array exposing (Array)
 import List.Extra
+import Optimisation.Permutations exposing (permutations2)
 
 
 type TournamentPreference
@@ -29,7 +30,9 @@ type alias GameOrderMetrics =
     { analysedGames : List AnalysedGame
     , analysedTeams : List AnalysedTeam
     , occurencesOfTeamsPlayingConsecutiveGames : Int
-    , tournamentPreferenceScore : Float
+    , lowestTournamentPreferenceScore : Float
+    , meanTournamentPreferenceScore : Float
+    , highestTournamentPreferenceScore : Float
     }
 
 
@@ -69,6 +72,100 @@ type alias IndexedTeam =
     }
 
 
+optimiseAllPermutations : List Game -> Maybe GameOrderMetrics -> GameOrderMetrics
+optimiseAllPermutations games maybeGameOrderMetrics =
+    let
+        initialGameOrderMetrics =
+            maybeGameOrderMetrics
+                |> Maybe.withDefault nullObjectGameOrderMetrics
+
+        curtailedGameOrderMetrics =
+            optimiseCurtailedPermutations curtailWhenTeamsPlayingConsecutively games initialGameOrderMetrics
+    in
+    if curtailedGameOrderMetrics == nullObjectGameOrderMetrics then
+        optimiseCurtailedPermutations neverCurtail games initialGameOrderMetrics
+
+    else
+        curtailedGameOrderMetrics
+
+
+optimiseCurtailedPermutations : (Game -> Game -> Bool) -> List Game -> GameOrderMetrics -> GameOrderMetrics
+optimiseCurtailedPermutations curtail games gameOrderMetrics =
+    let
+        -- todo, pass calculateGameOrderMetrics to the analyser, so don't have
+        -- to store all the gameOrders, and can instead analyse them as we
+        -- find them. Less memory usage. And probably a little bit faster.
+        gameOrders =
+            permutations2 100000 curtail games
+    in
+    List.foldr
+        (\gameOrder currentBestGameOrderMetrics ->
+            bestGameOrderMetrics (calculateGameOrderMetrics gameOrder) currentBestGameOrderMetrics
+        )
+        gameOrderMetrics
+        gameOrders
+
+
+nullObjectGameOrderMetrics : GameOrderMetrics
+nullObjectGameOrderMetrics =
+    { analysedGames = []
+    , analysedTeams = []
+    , occurencesOfTeamsPlayingConsecutiveGames = 2 ^ 31 - 1
+    , lowestTournamentPreferenceScore = 0
+    , meanTournamentPreferenceScore = 0
+    , highestTournamentPreferenceScore = 0
+    }
+
+
+bestGameOrderMetrics : GameOrderMetrics -> GameOrderMetrics -> GameOrderMetrics
+bestGameOrderMetrics gameOrderMetrics1 gameOrderMetrics2 =
+    --If the minimum of the metrics is equal, then the next thing to differentiate on is the average. If the average is also the same, then go for the one with the lowest max (which means that teams will be treated as fairly as possible)
+    if
+        gameOrderMetrics1.occurencesOfTeamsPlayingConsecutiveGames
+            < gameOrderMetrics2.occurencesOfTeamsPlayingConsecutiveGames
+    then
+        gameOrderMetrics1
+
+    else if
+        gameOrderMetrics2.occurencesOfTeamsPlayingConsecutiveGames
+            < gameOrderMetrics1.occurencesOfTeamsPlayingConsecutiveGames
+    then
+        gameOrderMetrics2
+
+    else if
+        gameOrderMetrics1.lowestTournamentPreferenceScore
+            > gameOrderMetrics2.lowestTournamentPreferenceScore
+    then
+        gameOrderMetrics1
+
+    else if
+        gameOrderMetrics2.lowestTournamentPreferenceScore
+            > gameOrderMetrics1.lowestTournamentPreferenceScore
+    then
+        gameOrderMetrics2
+
+    else if
+        gameOrderMetrics1.meanTournamentPreferenceScore
+            > gameOrderMetrics2.meanTournamentPreferenceScore
+    then
+        gameOrderMetrics1
+
+    else if
+        gameOrderMetrics2.meanTournamentPreferenceScore
+            > gameOrderMetrics1.meanTournamentPreferenceScore
+    then
+        gameOrderMetrics2
+
+    else if
+        gameOrderMetrics1.highestTournamentPreferenceScore
+            > gameOrderMetrics2.highestTournamentPreferenceScore
+    then
+        gameOrderMetrics1
+
+    else
+        gameOrderMetrics2
+
+
 calculateGameOrderMetrics : List Game -> GameOrderMetrics
 calculateGameOrderMetrics games =
     let
@@ -81,13 +178,21 @@ calculateGameOrderMetrics games =
         analysedTeams =
             calculateTournamentPreferenceScores games analysedTeamsFirstPass
 
-        tournamentPreferenceScore =
+        lowestTournamentPreferenceScore =
             List.map .tournamentPreferenceScore analysedTeams |> List.minimum |> Maybe.withDefault 0
+
+        meanTournamentPreferenceScore =
+            List.map .tournamentPreferenceScore analysedTeams |> List.sum |> (\sum -> sum / toFloat (List.length analysedTeams))
+
+        highestTournamentPreferenceScore =
+            List.map .tournamentPreferenceScore analysedTeams |> List.maximum |> Maybe.withDefault 0
     in
     { analysedGames = analysedGames |> Array.toList
     , analysedTeams = analysedTeams
     , occurencesOfTeamsPlayingConsecutiveGames = calculateOccurencesOfTeamsPlayingConsecutiveGames analysedGames
-    , tournamentPreferenceScore = tournamentPreferenceScore
+    , lowestTournamentPreferenceScore = lowestTournamentPreferenceScore
+    , meanTournamentPreferenceScore = meanTournamentPreferenceScore
+    , highestTournamentPreferenceScore = highestTournamentPreferenceScore
     }
 
 
@@ -114,6 +219,11 @@ playing team game =
 curtailWhenTeamsPlayingConsecutively : Game -> Game -> Bool
 curtailWhenTeamsPlayingConsecutively game1 game2 =
     playing game1.homeTeam game2 || playing game1.awayTeam game2
+
+
+neverCurtail : Game -> Game -> Bool
+neverCurtail _ _ =
+    False
 
 
 maybePlaying : Team -> Maybe Game -> Bool
@@ -220,19 +330,16 @@ calculateTeamTournamentPreferenceScore games analysedTeamFirstPass =
     in
     -- Scores should all return a value between 0 and 1
     if score < 0 || score > 1 then
-        let
-            _ =
-                Debug.log "score" score
-
-            _ =
-                Debug.log "games" games
-
-            _ =
-                Debug.log "analysedTeams" analysedTeam
-
-            _ =
-                Debug.log "teamNumberOfGames" teamNumberOfGames
-        in
+        -- let
+        --     _ =
+        --         Debug.log "score" score
+        --     _ =
+        --         Debug.log "games" games
+        --     _ =
+        --         Debug.log "analysedTeams" analysedTeam
+        --     _ =
+        --         Debug.log "teamNumberOfGames" teamNumberOfGames
+        -- in
         analysedTeam
 
     else

@@ -5,9 +5,7 @@ import Html exposing (Html, a, button, div, h1, h2, header, input, li, main_, na
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, curtailWhenTeamsPlayingConsecutively, vanillaTeam)
-import Optimisation.Permutations exposing (permutations2)
-import Optimisation.Permutations2 exposing (Step(..), first, next)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), bestGameOrderMetrics, calculateGameOrderMetrics, curtailWhenTeamsPlayingConsecutively, neverCurtail, optimiseAllPermutations, vanillaTeam)
 import String exposing (fromFloat)
 import Svg
 import Svg.Attributes
@@ -34,124 +32,63 @@ vanillaGame =
         vanillaTeam
 
 
-type Optimisation
-    = NotStarted
-    | InProgress GameOrderMetrics Int (Step Game)
-    | Finished GameOrderMetrics Int
-
-
-optimiseAllPermutations : List Game -> Optimisation -> Optimisation
-optimiseAllPermutations games optimisation =
-    let
-        -- todo, pass calculateGameOrderMetrics to the analyser, so don't have
-        -- to store all the gameOrders, and can instead analyse them as we
-        -- find them. Less memory usage. And probably a little bit faster.
-        gameOrders =
-            permutations2 100000 curtailWhenTeamsPlayingConsecutively games
-
-        initialBestGameOrderMetrics =
-            case optimisation of
-                Finished gameOrderMetrics _ ->
-                    gameOrderMetrics
-
-                _ ->
-                    { analysedGames = []
-                    , analysedTeams = []
-                    , occurencesOfTeamsPlayingConsecutiveGames = List.length games
-                    , tournamentPreferenceScore = 0
-                    }
-
-        bestGameOrder =
-            List.foldr
-                (\gameOrder currentBestGameOrderMetrics ->
-                    let
-                        gameOrderMetrics =
-                            calculateGameOrderMetrics gameOrder
-                    in
-                    if
-                        gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                            < currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                            || (gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                                    == currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                                    && gameOrderMetrics.tournamentPreferenceScore
-                                    > currentBestGameOrderMetrics.tournamentPreferenceScore
-                               )
-                    then
-                        gameOrderMetrics
-
-                    else
-                        currentBestGameOrderMetrics
-                )
-                initialBestGameOrderMetrics
-                gameOrders
-    in
-    Finished bestGameOrder (factorial (List.length games))
-
-
 factorial : Int -> Int
 factorial n =
     List.product (List.range 1 n)
 
 
-optimiseInChunks : List Game -> Optimisation -> Optimisation
-optimiseInChunks games optimisation =
-    case optimisation of
-        NotStarted ->
-            optimiseInChunks2
-                { analysedGames = []
-                , analysedTeams = []
-                , occurencesOfTeamsPlayingConsecutiveGames = List.length games
-                , tournamentPreferenceScore = 0
-                }
-                10000
-                (first games)
 
-        InProgress gameOrderMetrics maxPermutation step ->
-            Debug.log "optimise2" (optimiseInChunks2 gameOrderMetrics (maxPermutation + 10000) step)
-
-        Finished _ _ ->
-            optimiseInChunks2
-                { analysedGames = []
-                , analysedTeams = []
-                , occurencesOfTeamsPlayingConsecutiveGames = List.length games
-                , tournamentPreferenceScore = 0
-                }
-                10000
-                (first games)
-
-
-optimiseInChunks2 : GameOrderMetrics -> Int -> Step Game -> Optimisation
-optimiseInChunks2 currentBestGameOrderMetrics maxPermutation step =
-    case step of
-        Done ->
-            -- todo store total permutations count, maybe in the state
-            Finished currentBestGameOrderMetrics 0
-
-        Next state permutation ->
-            let
-                gameOrderMetrics =
-                    calculateGameOrderMetrics permutation
-
-                nextBestGameOrderMetrics =
-                    if
-                        gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                            < currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                            || (gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                                    == currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
-                                    && gameOrderMetrics.tournamentPreferenceScore
-                                    > currentBestGameOrderMetrics.tournamentPreferenceScore
-                               )
-                    then
-                        gameOrderMetrics
-
-                    else
-                        currentBestGameOrderMetrics
-            in
-            if state.count >= maxPermutation then
-                InProgress nextBestGameOrderMetrics maxPermutation step
-
-            else
-                optimiseInChunks2 nextBestGameOrderMetrics maxPermutation (next state)
+-- optimiseInChunks : List Game -> Optimisation -> Optimisation
+-- optimiseInChunks games optimisation =
+--     case optimisation of
+--         NotStarted ->
+--             optimiseInChunks2
+--                 { analysedGames = []
+--                 , analysedTeams = []
+--                 , occurencesOfTeamsPlayingConsecutiveGames = List.length games
+--                 , tournamentPreferenceScore = 0
+--                 }
+--                 10000
+--                 (first games)
+--         InProgress gameOrderMetrics maxPermutation step ->
+--             Debug.log "optimise2" (optimiseInChunks2 gameOrderMetrics (maxPermutation + 10000) step)
+--         Finished _ _ ->
+--             optimiseInChunks2
+--                 { analysedGames = []
+--                 , analysedTeams = []
+--                 , occurencesOfTeamsPlayingConsecutiveGames = List.length games
+--                 , tournamentPreferenceScore = 0
+--                 }
+--                 10000
+--                 (first games)
+-- optimiseInChunks2 : GameOrderMetrics -> Int -> Step Game -> Optimisation
+-- optimiseInChunks2 currentBestGameOrderMetrics maxPermutation step =
+--     case step of
+--         Done ->
+--             -- todo store total permutations count, maybe in the state
+--             Finished currentBestGameOrderMetrics 0
+--         Next state permutation ->
+--             let
+--                 gameOrderMetrics =
+--                     calculateGameOrderMetrics permutation
+--                 nextBestGameOrderMetrics =
+--                     if
+--                         gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+--                             < currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+--                             || (gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+--                                     == currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
+--                                     && gameOrderMetrics.tournamentPreferenceScore
+--                                     > currentBestGameOrderMetrics.tournamentPreferenceScore
+--                                )
+--                     then
+--                         gameOrderMetrics
+--                     else
+--                         currentBestGameOrderMetrics
+--             in
+--             if state.count >= maxPermutation then
+--                 InProgress nextBestGameOrderMetrics maxPermutation step
+--             else
+--                 optimiseInChunks2 nextBestGameOrderMetrics maxPermutation (next state)
 
 
 type alias Model =
@@ -176,7 +113,7 @@ type alias Model =
     , editedAwayTeam : Team
 
     -- optimise
-    , optimisation : Optimisation
+    , gameOrderMetrics : Maybe GameOrderMetrics
     }
 
 
@@ -222,7 +159,7 @@ vanillaModel =
         vanillaGame
         vanillaTeam
         vanillaTeam
-        NotStarted
+        Nothing
 
 
 init : ( Model, Cmd Msg )
@@ -262,10 +199,6 @@ type Msg
       -- Optimise
     | ShowOptimise
     | OptimiseGameOrder
-
-
-
--- | OptimiseGameOrderResponse (WebData Optimisation)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -378,14 +311,10 @@ update msg model =
         OptimiseGameOrder ->
             let
                 games =
-                    case model.optimisation of
-                        Finished gameOrderMetrics _ ->
-                            List.map .game gameOrderMetrics.analysedGames
-
-                        _ ->
-                            model.games
+                    Maybe.map (\gameOrderMetrics -> List.map .game gameOrderMetrics.analysedGames) model.gameOrderMetrics
+                        |> Maybe.withDefault model.games
             in
-            ( { model | optimisation = optimiseAllPermutations games model.optimisation }
+            ( { model | gameOrderMetrics = Just (optimiseAllPermutations games model.gameOrderMetrics) }
               -- ( { model | optimisation = optimiseInChunks model.games model.optimisation }
             , Cmd.none
             )
@@ -405,7 +334,7 @@ initializeGames teams existingGames =
 
 clearOptimisationResults : Model -> Model
 clearOptimisationResults model =
-    { model | optimisation = NotStarted }
+    { model | gameOrderMetrics = Nothing }
 
 
 
@@ -617,35 +546,25 @@ optimiseView model =
         , class "primary center"
         ]
         [ text "Optimise" ]
-        :: optimisationView model.optimisation
+        :: optimisationView model.gameOrderMetrics
 
 
-optimisationView : Optimisation -> List (Html Msg)
-optimisationView optimisation =
-    case optimisation of
-        NotStarted ->
+optimisationView : Maybe GameOrderMetrics -> List (Html Msg)
+optimisationView maybeGameOrderMetrics =
+    case maybeGameOrderMetrics of
+        Nothing ->
             [ p [] [ text "Please click the 'Optimise' button" ] ]
 
-        InProgress gameOrderMetrics permutationsAnalysed _ ->
-            [ p [] [ text "In progress ..." ]
-            , optimisedGamesView gameOrderMetrics.analysedGames
-            ]
-
-        Finished gameOrderMetrics totalPermutations ->
-            optimisationExplanation optimisation
+        Just gameOrderMetrics ->
+            optimisationExplanation gameOrderMetrics
                 ++ [ optimisedGamesView gameOrderMetrics.analysedGames
                    ]
 
 
-optimisationExplanation : Optimisation -> List (Html Msg)
-optimisationExplanation optimisation =
-    case optimisation of
-        Finished gameOrderMetrics totalPermutations ->
-            p [ class "text-center" ] [ text ("Finished. Tournament preference score: " ++ fromFloat gameOrderMetrics.tournamentPreferenceScore) ]
-                :: List.map (\analysedTeam -> p [ class "text-center " ] [ text (analysedTeam.team.name ++ ", " ++ Debug.toString analysedTeam.team.tournamentPreference ++ ", " ++ fromFloat analysedTeam.tournamentPreferenceScore) ]) gameOrderMetrics.analysedTeams
-
-        _ ->
-            []
+optimisationExplanation : GameOrderMetrics -> List (Html Msg)
+optimisationExplanation gameOrderMetrics =
+    p [ class "text-center" ] [ text ("Finished. Tournament preference scores: " ++ fromFloat gameOrderMetrics.lowestTournamentPreferenceScore ++ ", " ++ fromFloat gameOrderMetrics.meanTournamentPreferenceScore ++ ", " ++ fromFloat gameOrderMetrics.highestTournamentPreferenceScore) ]
+        :: List.map (\analysedTeam -> p [ class "text-center " ] [ text (analysedTeam.team.name ++ ", " ++ Debug.toString analysedTeam.team.tournamentPreference ++ ", " ++ fromFloat analysedTeam.tournamentPreferenceScore) ]) gameOrderMetrics.analysedTeams
 
 
 optimisedGamesView : List AnalysedGame -> Html Msg

@@ -1,6 +1,7 @@
 module GameOrderMetricsTests exposing (..)
 
 import Expect
+import List exposing (length)
 import Main exposing (..)
 import Optimisation.GameOrderMetrics exposing (..)
 import Test exposing (..)
@@ -224,9 +225,37 @@ all =
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            (calculateGameOrderMetrics games).tournamentPreferenceScore
+                            (calculateGameOrderMetrics games).lowestTournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         ]
+        , test "Repond with something when permutations get out of hand and curtailment isn't possible" <|
+            \_ ->
+                optimiseAllPermutations
+                    [ Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    ]
+                    Nothing
+                    |> .analysedGames
+                    |> List.length
+                    |> Expect.equal 20
         ]
 
 
