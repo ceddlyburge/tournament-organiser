@@ -1,14 +1,38 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Browser
+import GameParser
 import Html exposing (Html, a, button, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, disabled)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), bestGameOrderMetrics, calculateGameOrderMetrics, curtailWhenTeamsPlayingConsecutively, neverCurtail, optimiseAllPermutations, vanillaTeam)
-import String exposing (fromFloat)
+import Parser
+import String
 import Svg
 import Svg.Attributes
+
+
+
+---- Ports ----
+
+
+port paste : (String -> msg) -> Sub msg
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    paste
+        (\pastedString ->
+            case Parser.run GameParser.gamesParser pastedString of
+                Ok games ->
+                    -- todo - add games to model, and add any new teams we didn't already know about
+                    PasteGames games
+
+                Err _ ->
+                    -- todo, probably show a message here
+                    PasteGames []
+        )
 
 
 
@@ -114,6 +138,7 @@ type alias Model =
 
     -- optimise
     , gameOrderMetrics : Maybe GameOrderMetrics
+    , previousGameOrderMetrics : Maybe GameOrderMetrics
     }
 
 
@@ -160,6 +185,7 @@ vanillaModel =
         vanillaTeam
         vanillaTeam
         Nothing
+        Nothing
 
 
 init : ( Model, Cmd Msg )
@@ -199,6 +225,8 @@ type Msg
       -- Optimise
     | ShowOptimise
     | OptimiseGameOrder
+      -- Paste
+    | PasteGames (List Game)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -314,10 +342,21 @@ update msg model =
                     Maybe.map (\gameOrderMetrics -> List.map .game gameOrderMetrics.analysedGames) model.gameOrderMetrics
                         |> Maybe.withDefault model.games
             in
-            ( { model | gameOrderMetrics = Just (optimiseAllPermutations games model.gameOrderMetrics) }
+            ( { model
+                | previousGameOrderMetrics = model.gameOrderMetrics
+                , gameOrderMetrics = Just (optimiseAllPermutations games model.gameOrderMetrics)
+              }
               -- ( { model | optimisation = optimiseInChunks model.games model.optimisation }
             , Cmd.none
             )
+
+        -- Paste
+        PasteGames games ->
+            let
+                _ =
+                    Debug.log "paste" games
+            in
+            ( model, Cmd.none )
 
 
 initializeGames : List Team -> List Game -> List Game
@@ -349,8 +388,8 @@ view model =
         [ class "body stack" ]
         [ header
             []
-            [ h1 [ class "text-center" ] [ text "Tournament Organiser" ]
-            , h2 [ class "text-center" ] [ text "Optimise Order of Games" ]
+            [ h1 [] [ text "Tournament Organiser" ]
+            , h2 [] [ text "Optimise Order of Games" ]
             , nav
                 [ class "center" ]
                 [ -- this probably wants to enable / disable appropriately. not a biggie though
@@ -424,6 +463,10 @@ teamView aTeam =
             , class "grow"
             ]
             [ text aTeam.name ]
+        , editListItemButton (ShowEditTeam aTeam)
+
+        -- use some styling here instead of the separator
+        , span [] [ text "\u{00A0}" ]
         , deleteListItemButton (DeleteTeam aTeam)
         ]
 
@@ -449,7 +492,9 @@ editTeamView model =
         ]
         []
     , button
-        [ onClick EditTeam ]
+        [ onClick EditTeam
+        , class "primary center"
+        ]
         [ text "Edit Team" ]
     ]
 
@@ -541,30 +586,77 @@ gameView game =
 
 optimiseView : Model -> List (Html Msg)
 optimiseView model =
+    let
+        optimiseDisabled =
+            case ( model.previousGameOrderMetrics, model.gameOrderMetrics ) of
+                ( Nothing, _ ) ->
+                    False
+
+                ( previousGameOrderMetrics, gameOrderMetrics ) ->
+                    previousGameOrderMetrics == gameOrderMetrics
+    in
     button
         [ onClick OptimiseGameOrder
         , class "primary center"
+        , disabled optimiseDisabled
         ]
         [ text "Optimise" ]
-        :: optimisationView model.gameOrderMetrics
+        :: optimisationView model.previousGameOrderMetrics model.gameOrderMetrics
 
 
-optimisationView : Maybe GameOrderMetrics -> List (Html Msg)
-optimisationView maybeGameOrderMetrics =
+optimisationView : Maybe GameOrderMetrics -> Maybe GameOrderMetrics -> List (Html Msg)
+optimisationView previousGameOrderMetrics maybeGameOrderMetrics =
     case maybeGameOrderMetrics of
         Nothing ->
             [ p [] [ text "Please click the 'Optimise' button" ] ]
 
         Just gameOrderMetrics ->
-            optimisationExplanation gameOrderMetrics
+            optimisationExplanation previousGameOrderMetrics gameOrderMetrics
                 ++ [ optimisedGamesView gameOrderMetrics.analysedGames
                    ]
 
 
-optimisationExplanation : GameOrderMetrics -> List (Html Msg)
-optimisationExplanation gameOrderMetrics =
-    p [ class "text-center" ] [ text ("Finished. Tournament preference scores: " ++ fromFloat gameOrderMetrics.lowestTournamentPreferenceScore ++ ", " ++ fromFloat gameOrderMetrics.meanTournamentPreferenceScore ++ ", " ++ fromFloat gameOrderMetrics.highestTournamentPreferenceScore) ]
-        :: List.map (\analysedTeam -> p [ class "text-center " ] [ text (analysedTeam.team.name ++ ", " ++ Debug.toString analysedTeam.team.tournamentPreference ++ ", " ++ fromFloat analysedTeam.tournamentPreferenceScore) ]) gameOrderMetrics.analysedTeams
+optimisationExplanation : Maybe GameOrderMetrics -> GameOrderMetrics -> List (Html Msg)
+optimisationExplanation previousGameOrderMetrics gameOrderMetrics =
+    if gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames > 0 then
+        [ p [] [ text "Could not find any game orders where teams did not play back to back, showing the best result I could find." ] ]
+
+    else if Just gameOrderMetrics /= previousGameOrderMetrics then
+        [ p [] [ text "Showing the best game order I found so far. You can click 'Optimise' again to analyse more options." ]
+        , preferenceExplanation gameOrderMetrics
+        ]
+
+    else
+        [ p [] [ text "Showing the best game order I could find." ]
+        , preferenceExplanation gameOrderMetrics
+        ]
+
+
+preferenceExplanation : GameOrderMetrics -> Html Msg
+preferenceExplanation gameOrderMetrics =
+    let
+        lowestTournamentPreferenceScore =
+            gameOrderMetrics.lowestTournamentPreferenceScore
+                * 100
+                |> floor
+                |> String.fromInt
+
+        highestTournamentPreferenceScore =
+            gameOrderMetrics.highestTournamentPreferenceScore
+                * 100
+                |> floor
+                |> String.fromInt
+    in
+    p
+        []
+        [ text
+            ("The team preferences are accommodated with "
+                ++ lowestTournamentPreferenceScore
+                ++ "-"
+                ++ highestTournamentPreferenceScore
+                ++ "% success"
+            )
+        ]
 
 
 optimisedGamesView : List AnalysedGame -> Html Msg
@@ -639,29 +731,11 @@ editGameView model =
     ]
 
 
-loading : Html msg
-loading =
-    Html.div
-        [ Html.Attributes.class "loading" ]
-        [ Html.div
-            [ Html.Attributes.class "la-ball-newton-cradle la-3x" ]
-            [ Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            ]
-        ]
-
-
-
----- PROGRAM ----
-
-
 main : Program () Model Msg
 main =
     Browser.element
         { view = view
         , init = \_ -> init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }

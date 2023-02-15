@@ -172,11 +172,14 @@ calculateGameOrderMetrics games =
         analysedGames =
             analyseGames (Array.fromList games)
 
+        occurencesOfTeamsPlayingConsecutiveGames =
+            calculateOccurencesOfTeamsPlayingConsecutiveGames analysedGames
+
         analysedTeamsFirstPass =
             analyseTeams games
 
         analysedTeams =
-            calculateTournamentPreferenceScores games analysedTeamsFirstPass
+            calculateTournamentPreferenceScores games analysedTeamsFirstPass occurencesOfTeamsPlayingConsecutiveGames
 
         lowestTournamentPreferenceScore =
             List.map .tournamentPreferenceScore analysedTeams |> List.minimum |> Maybe.withDefault 0
@@ -189,7 +192,7 @@ calculateGameOrderMetrics games =
     in
     { analysedGames = analysedGames |> Array.toList
     , analysedTeams = analysedTeams
-    , occurencesOfTeamsPlayingConsecutiveGames = calculateOccurencesOfTeamsPlayingConsecutiveGames analysedGames
+    , occurencesOfTeamsPlayingConsecutiveGames = occurencesOfTeamsPlayingConsecutiveGames
     , lowestTournamentPreferenceScore = lowestTournamentPreferenceScore
     , meanTournamentPreferenceScore = meanTournamentPreferenceScore
     , highestTournamentPreferenceScore = highestTournamentPreferenceScore
@@ -290,15 +293,15 @@ calculateOccurencesOfTeamsPlayingConsecutiveGames analysedGames =
         // 2
 
 
-calculateTournamentPreferenceScores : List Game -> List AnalysedTeamFirstPass -> List AnalysedTeam
-calculateTournamentPreferenceScores games analysedTeams =
+calculateTournamentPreferenceScores : List Game -> List AnalysedTeamFirstPass -> Int -> List AnalysedTeam
+calculateTournamentPreferenceScores games analysedTeams occurencesOfTeamsPlayingConsecutiveGames =
     List.map
-        (calculateTeamTournamentPreferenceScore games)
+        (calculateTeamTournamentPreferenceScore games occurencesOfTeamsPlayingConsecutiveGames)
         analysedTeams
 
 
-calculateTeamTournamentPreferenceScore : List Game -> AnalysedTeamFirstPass -> AnalysedTeam
-calculateTeamTournamentPreferenceScore games analysedTeamFirstPass =
+calculateTeamTournamentPreferenceScore : List Game -> Int -> AnalysedTeamFirstPass -> AnalysedTeam
+calculateTeamTournamentPreferenceScore games occurencesOfTeamsPlayingConsecutiveGames analysedTeamFirstPass =
     let
         teamNumberOfGames =
             List.filter (\game -> playing analysedTeamFirstPass.team game) games |> List.length
@@ -307,18 +310,22 @@ calculateTeamTournamentPreferenceScore games analysedTeamFirstPass =
             List.length games
 
         score =
-            case analysedTeamFirstPass.team.tournamentPreference of
-                StartLate ->
-                    calculateStartLateScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+            if occurencesOfTeamsPlayingConsecutiveGames > 0 then
+                0
 
-                FinishEarly ->
-                    calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+            else
+                case analysedTeamFirstPass.team.tournamentPreference of
+                    StartLate ->
+                        calculateStartLateScore teamNumberOfGames numberOfGames analysedTeamFirstPass
 
-                TwoGamesRest ->
-                    calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+                    FinishEarly ->
+                        calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeamFirstPass
 
-                NoPreference ->
-                    1
+                    TwoGamesRest ->
+                        calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeamFirstPass
+
+                    NoPreference ->
+                        1
 
         analysedTeam =
             { team = analysedTeamFirstPass.team
@@ -330,16 +337,19 @@ calculateTeamTournamentPreferenceScore games analysedTeamFirstPass =
     in
     -- Scores should all return a value between 0 and 1
     if score < 0 || score > 1 then
-        -- let
-        --     _ =
-        --         Debug.log "score" score
-        --     _ =
-        --         Debug.log "games" games
-        --     _ =
-        --         Debug.log "analysedTeams" analysedTeam
-        --     _ =
-        --         Debug.log "teamNumberOfGames" teamNumberOfGames
-        -- in
+        let
+            _ =
+                Debug.log "score" score
+
+            _ =
+                Debug.log "games" games
+
+            _ =
+                Debug.log "analysedTeam" analysedTeam
+
+            _ =
+                Debug.log "teamNumberOfGames" teamNumberOfGames
+        in
         analysedTeam
 
     else

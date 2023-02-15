@@ -1,3 +1,7 @@
+[data-elm-hot="true"] {
+  height: inherit;
+}
+
 :root {
   
     --text-color:#fef7f0;
@@ -174,8 +178,21 @@ button {
   border-radius: var(--s0);
 }
 
+.playingConsecutively {
+  color: red;
+}
+
+/* .atLeastOneGameToRecover {
+  color: green; 
+} */
+
 button:hover {
   border-color: var(--thead-color);
+}
+
+button:disabled {
+  color: var(--border-color);
+  border-color: transparent;
 }
 
 button.list {
@@ -229,7 +246,10 @@ nav {
     inline-size: 100%;
   }
   
-    
+ main p, h1, h2 {
+  text-align: center;
+ }
+
   img {
     max-inline-size: 100%;
   }

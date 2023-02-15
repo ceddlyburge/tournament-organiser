@@ -1,7 +1,7 @@
 module GameOrderMetricsTests exposing (..)
 
 import Expect
-import List exposing (length)
+import List
 import Main exposing (..)
 import Optimisation.GameOrderMetrics exposing (..)
 import Test exposing (..)
@@ -59,8 +59,8 @@ all =
                     |> .analysedTeams
                     |> Expect.equal
                         [ AnalysedTeam (team "Castle") 0 1 1 0
-                        , AnalysedTeam (team "Avon") 0 0 0 1
-                        , AnalysedTeam (team "Battersea") 1 1 0 1
+                        , AnalysedTeam (team "Avon") 0 0 0 0
+                        , AnalysedTeam (team "Battersea") 1 1 0 0
                         ]
         , test "Single game breaks" <|
             \_ ->
@@ -92,6 +92,7 @@ all =
                     , Game anyTeam castleFinishEarly
                     , anyGame
                     ]
+                    0
                     (AnalysedTeamFirstPass castleFinishEarly 0 2 1)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
@@ -103,6 +104,7 @@ all =
                     , anyGame
                     , Game anyTeam castleFinishEarly
                     ]
+                    0
                     (AnalysedTeamFirstPass castleFinishEarly 0 3 1)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
@@ -114,6 +116,7 @@ all =
                     , anyGame
                     , Game anyTeam batterseaStartLate
                     ]
+                    0
                     (AnalysedTeamFirstPass batterseaStartLate 1 3 1)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
@@ -125,6 +128,7 @@ all =
                     , anyGame
                     , Game anyTeam batterseaStartLate
                     ]
+                    0
                     (AnalysedTeamFirstPass batterseaStartLate 0 3 1)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
@@ -136,6 +140,7 @@ all =
                     , anyGame
                     , Game anyTeam avonTwoGamesRest
                     ]
+                    0
                     (AnalysedTeamFirstPass avonTwoGamesRest 0 3 0)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
@@ -146,6 +151,7 @@ all =
                     , anyGame
                     , anyGame
                     ]
+                    0
                     (AnalysedTeamFirstPass avonTwoGamesRest 0 0 0)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
@@ -157,6 +163,7 @@ all =
                     , Game anyTeam avonTwoGamesRest
                     , anyGame
                     ]
+                    0
                     (AnalysedTeamFirstPass avonTwoGamesRest 0 2 1)
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
@@ -201,27 +208,27 @@ all =
                 ]
                     |> Expect.all
                         [ \games ->
-                            calculateTeamTournamentPreferenceScore games (AnalysedTeamFirstPass castleFinishEarly 0 2 1)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass castleFinishEarly 0 2 1)
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games (AnalysedTeamFirstPass batterseaStartLate 1 3 1)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass batterseaStartLate 1 3 1)
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games (AnalysedTeamFirstPass avonTwoGamesRest 0 3 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass avonTwoGamesRest 0 3 0)
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games (AnalysedTeamFirstPass claphamTwoGamesRest 1 1 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass claphamTwoGamesRest 1 1 0)
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games (AnalysedTeamFirstPass uluTwoGamesRest 2 2 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass uluTwoGamesRest 2 2 0)
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games (AnalysedTeamFirstPass avonTwoGamesRest 3 3 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass avonTwoGamesRest 3 3 0)
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
