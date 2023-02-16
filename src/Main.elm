@@ -2,11 +2,11 @@ port module Main exposing (..)
 
 import Browser
 import GameParser
-import Html exposing (Html, a, button, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
-import Html.Attributes exposing (class, disabled)
+import Html exposing (Html, a, button, div, h1, h2, header, li, main_, nav, option, p, select, span, text, ul)
+import Html.Attributes exposing (class, disabled, selected)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), bestGameOrderMetrics, calculateGameOrderMetrics, curtailWhenTeamsPlayingConsecutively, neverCurtail, optimiseAllPermutations, vanillaTeam)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 import Parser
 import String
 import Svg
@@ -40,28 +40,19 @@ subscriptions _ =
 
 
 type UiState
-    = TeamsView
-    | AddTeamView
-    | EditTeamView
-    | GameOrderView
+    = GamesView
     | AddGameView
     | EditGameView
+    | TeamsView
+      -- | AddTeamView
+      -- | EditTeamView
     | OptimiseView
 
 
-vanillaGame : Game
-vanillaGame =
-    Game
-        vanillaTeam
-        vanillaTeam
 
-
-factorial : Int -> Int
-factorial n =
-    List.product (List.range 1 n)
-
-
-
+-- factorial : Int -> Int
+-- factorial n =
+--     List.product (List.range 1 n)
 -- optimiseInChunks : List Game -> Optimisation -> Optimisation
 -- optimiseInChunks games optimisation =
 --     case optimisation of
@@ -121,12 +112,10 @@ type alias Model =
     , games : List Game
 
     -- add team
-    , teamNameToAdd : String
-
-    -- edit team
-    , teamToEdit : Team
-    , editedTeamName : String
-
+    -- , teamNameToAdd : String
+    -- -- edit team
+    -- , teamToEdit : Team
+    -- , editedTeamName : String
     -- add game
     , homeTeamToAdd : Team
     , awayTeamToAdd : Team
@@ -145,7 +134,7 @@ type alias Model =
 vanillaModel : Model
 vanillaModel =
     Model
-        TeamsView
+        GamesView
         [ Team "Castle" TwoGamesRest
         , Team "ULU" FinishEarly
         , Team "Surrey" TwoGamesRest
@@ -176,9 +165,9 @@ vanillaModel =
         , Game (Team "St Albans" TwoGamesRest) (Team "Castle" TwoGamesRest)
         , Game (Team "East End" StartLate) (Team "Castle" TwoGamesRest)
         ]
-        ""
-        vanillaTeam
-        ""
+        -- ""
+        -- vanillaTeam
+        -- ""
         vanillaTeam
         vanillaTeam
         vanillaGame
@@ -200,17 +189,17 @@ init =
 type Msg
     = ShowTeams
       -- delete team
-    | DeleteTeam Team
+      -- | DeleteTeam Team
       -- add team
-    | ShowAddTeam
-    | SetTeamNameToAdd String
-    | AddTeam
+      -- | ShowAddTeam
+      -- | SetTeamNameToAdd String
+      -- | AddTeam
       -- edit team
-    | ShowEditTeam Team
-    | SetEditedTeamName String
-    | EditTeam
+      -- | ShowEditTeam Team
+      -- | SetEditedTeamName String
+      -- | EditTeam
       -- define games
-    | ShowGameOrder
+    | ShowGames
     | ShowAddGame
     | DeleteGame Game
       -- add game
@@ -222,6 +211,8 @@ type Msg
     | SetEditedHomeTeam String
     | SetEditedAwayTeam String
     | EditGame
+      -- edit team
+    | EditTournamentPreference Team TournamentPreference
       -- Optimise
     | ShowOptimise
     | OptimiseGameOrder
@@ -236,47 +227,39 @@ update msg model =
         ShowTeams ->
             ( { model | uiState = TeamsView }, Cmd.none )
 
-        DeleteTeam team ->
-            ( { model | teams = List.Extra.remove team model.teams }, Cmd.none )
-
-        -- Add team
-        ShowAddTeam ->
-            ( { model | uiState = AddTeamView }, Cmd.none )
-
-        SetTeamNameToAdd teamName ->
-            ( { model | teamNameToAdd = teamName }, Cmd.none )
-
-        AddTeam ->
-            ( { model | teams = Team model.teamNameToAdd TwoGamesRest :: model.teams, uiState = TeamsView }, Cmd.none )
-
-        -- Edit team
-        ShowEditTeam team ->
-            ( { model | uiState = EditTeamView, teamToEdit = team, editedTeamName = team.name }, Cmd.none )
-
-        SetEditedTeamName teamName ->
-            ( { model | editedTeamName = teamName }, Cmd.none )
-
-        EditTeam ->
-            ( { model
-                | teams =
-                    List.map
-                        --could use list.extra.updateif / setif here, its probably slightly better
-                        (\t ->
-                            if t == model.teamToEdit then
-                                { t | name = model.editedTeamName }
-
-                            else
-                                t
-                        )
-                        model.teams
-                , uiState = TeamsView
-              }
-            , Cmd.none
-            )
-
+        -- DeleteTeam team ->
+        --     ( { model | teams = List.Extra.remove team model.teams }, Cmd.none )
+        -- -- Add team
+        -- ShowAddTeam ->
+        --     ( { model | uiState = AddTeamView }, Cmd.none )
+        -- SetTeamNameToAdd teamName ->
+        --     ( { model | teamNameToAdd = teamName }, Cmd.none )
+        -- AddTeam ->
+        --     ( { model | teams = Team model.teamNameToAdd TwoGamesRest :: model.teams, uiState = TeamsView }, Cmd.none )
+        -- -- Edit team
+        -- ShowEditTeam team ->
+        --     ( { model | uiState = EditTeamView, teamToEdit = team, editedTeamName = team.name }, Cmd.none )
+        -- SetEditedTeamName teamName ->
+        --     ( { model | editedTeamName = teamName }, Cmd.none )
+        -- EditTeam ->
+        --     ( { model
+        --         | teams =
+        --             List.map
+        --                 --could use list.extra.updateif / setif here, its probably slightly better
+        --                 (\t ->
+        --                     if t == model.teamToEdit then
+        --                         { t | name = model.editedTeamName }
+        --                     else
+        --                         t
+        --                 )
+        --                 model.teams
+        --         , uiState = TeamsView
+        --       }
+        --     , Cmd.none
+        --     )
         -- Game Order
-        ShowGameOrder ->
-            ( { model | uiState = GameOrderView, games = initializeGames model.teams model.games }, Cmd.none )
+        ShowGames ->
+            ( { model | uiState = GamesView, games = initializeGames model.teams model.games }, Cmd.none )
 
         DeleteGame game ->
             ( { model | games = List.Extra.remove game model.games }, Cmd.none )
@@ -296,7 +279,7 @@ update msg model =
                 newModel =
                     { model
                         | games = Game model.homeTeamToAdd model.awayTeamToAdd :: model.games
-                        , uiState = GameOrderView
+                        , uiState = GamesView
                     }
                         |> clearOptimisationResults
             in
@@ -324,11 +307,24 @@ update msg model =
                                 ((==) gameToEdit)
                                 { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
                                 model.games
-                        , uiState = GameOrderView
+                        , uiState = GamesView
                     }
                         |> clearOptimisationResults
             in
             ( newModel
+            , Cmd.none
+            )
+
+        -- Edit game
+        EditTournamentPreference teamToEdit tournamentPreference ->
+            let
+                editedTeams =
+                    List.Extra.updateIf
+                        ((==) teamToEdit)
+                        (\team -> { team | tournamentPreference = tournamentPreference })
+                        model.teams
+            in
+            ( { model | teams = editedTeams }
             , Cmd.none
             )
 
@@ -352,11 +348,20 @@ update msg model =
 
         -- Paste
         PasteGames games ->
-            let
-                _ =
-                    Debug.log "paste" games
-            in
-            ( model, Cmd.none )
+            if model.uiState == GamesView then
+                let
+                    oldTeams =
+                        List.filter (\team -> List.any (\game -> playing team game) games) model.teams
+
+                    newTeams =
+                        List.concatMap (\game -> [ game.awayTeam, game.awayTeam ]) games
+                            |> List.Extra.unique
+                            |> List.filter (\newTeam -> not (List.any (\oldTeam -> oldTeam.name == newTeam.name) oldTeams))
+                in
+                ( { model | games = games, teams = oldTeams ++ newTeams }, Cmd.none )
+
+            else
+                ( model, Cmd.none )
 
 
 initializeGames : List Team -> List Game -> List Game
@@ -394,15 +399,16 @@ view model =
                 [ class "center" ]
                 [ -- this probably wants to enable / disable appropriately. not a biggie though
                   a
-                    [ onClick ShowTeams ]
-                    [ text "Define Teams" ]
+                    [ onClick ShowGames ]
+                    [ text "Define Games" ]
 
                 -- sort out the spans with some flex or something
                 , span [] [ text " - " ]
-                , -- this probably wants to enable / disable appropriately. not a biggie though
-                  a
-                    [ onClick ShowGameOrder ]
-                    [ text "Define Games" ]
+
+                -- this probably wants to enable / disable appropriately. not a biggie though
+                , a
+                    [ onClick ShowTeams ]
+                    [ text "Team Options" ]
                 , span [] [ text " - " ]
                 , -- this probably wants to enable / disable appropriately. not a biggie though
                   a
@@ -419,17 +425,12 @@ view model =
 stateView : Model -> List (Html Msg)
 stateView model =
     case model.uiState of
-        TeamsView ->
-            teamsView model
-
-        AddTeamView ->
-            addTeamView
-
-        EditTeamView ->
-            editTeamView model
-
-        GameOrderView ->
-            gameOrderView model
+        -- AddTeamView ->
+        --     addTeamView
+        -- EditTeamView ->
+        --     editTeamView model
+        GamesView ->
+            gamesView model
 
         AddGameView ->
             addGameView model
@@ -437,118 +438,15 @@ stateView model =
         EditGameView ->
             editGameView model
 
+        TeamsView ->
+            teamsView model
+
         OptimiseView ->
             optimiseView model
 
 
-teamsView : Model -> List (Html Msg)
-teamsView model =
-    [ button
-        [ onClick ShowAddTeam
-        , class "primary center"
-        ]
-        [ text "Add Team" ]
-    , ul
-        [ class "stack stack-small" ]
-        (List.map teamView model.teams)
-    ]
-
-
-teamView : Team -> Html Msg
-teamView aTeam =
-    li
-        []
-        [ span
-            [ onClick (ShowEditTeam aTeam)
-            , class "grow"
-            ]
-            [ text aTeam.name ]
-        , editListItemButton (ShowEditTeam aTeam)
-
-        -- use some styling here instead of the separator
-        , span [] [ text "\u{00A0}" ]
-        , deleteListItemButton (DeleteTeam aTeam)
-        ]
-
-
-addTeamView : List (Html Msg)
-addTeamView =
-    [ input
-        [ onInput SetTeamNameToAdd ]
-        []
-    , button
-        [ onClick AddTeam
-        , class "primary center"
-        ]
-        [ text "Add Team" ]
-    ]
-
-
-editTeamView : Model -> List (Html Msg)
-editTeamView model =
-    [ input
-        [ onInput SetEditedTeamName
-        , Html.Attributes.value model.editedTeamName
-        ]
-        []
-    , button
-        [ onClick EditTeam
-        , class "primary center"
-        ]
-        [ text "Edit Team" ]
-    ]
-
-
-deleteIcon : Html msg
-deleteIcon =
-    Svg.svg
-        [ Svg.Attributes.viewBox "0 0 448 512"
-        , Svg.Attributes.class "icon"
-        , Svg.Attributes.fill "currentColor"
-        , Svg.Attributes.stroke "currentColor"
-        ]
-        [ Svg.path
-            [ Svg.Attributes.d "M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"
-            ]
-            []
-        ]
-
-
-editIcon : Html msg
-editIcon =
-    Svg.svg
-        [ Svg.Attributes.viewBox "0 0 512 512"
-        , Svg.Attributes.class "icon"
-        , Svg.Attributes.fill "currentColor"
-        , Svg.Attributes.stroke "currentColor"
-        ]
-        [ Svg.path
-            [ Svg.Attributes.d "M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.8 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"
-            ]
-            []
-        ]
-
-
-deleteListItemButton : msg -> Html msg
-deleteListItemButton onDelete =
-    button
-        [ onClick onDelete
-        , class "list"
-        ]
-        [ deleteIcon ]
-
-
-editListItemButton : msg -> Html msg
-editListItemButton onEdit =
-    button
-        [ onClick onEdit
-        , class "list"
-        ]
-        [ editIcon ]
-
-
-gameOrderView : Model -> List (Html Msg)
-gameOrderView model =
+gamesView : Model -> List (Html Msg)
+gamesView model =
     [ button
         [ onClick ShowAddGame
         , class "primary center"
@@ -558,6 +456,23 @@ gameOrderView model =
         [ class "stack stack-small" ]
         (List.map gameView model.games)
     ]
+
+
+gamesView2 : Model -> List (Html Msg)
+gamesView2 model =
+    if List.length model.games > 0 then
+        [ ul
+            [ class "stack stack-small" ]
+            (List.map gameView model.games)
+        ]
+
+    else
+        gamesViewEmptyState
+
+
+gamesViewEmptyState : List (Html Msg)
+gamesViewEmptyState =
+    [ p [] [] ]
 
 
 gameView : Game -> Html Msg
@@ -582,6 +497,116 @@ gameView game =
         , span [] [ text "\u{00A0}" ]
         , deleteListItemButton (DeleteGame game)
         ]
+
+
+addGameView : Model -> List (Html Msg)
+addGameView model =
+    [ select
+        [ onInput SetHomeTeamNameToAdd ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
+    , p
+        [ class "text-center" ]
+        [ text " versus " ]
+    , select
+        [ onInput SetAwayTeamNameToAdd ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
+    , button
+        [ onClick AddGame
+        , class "primary center"
+        ]
+        [ text "Add Game" ]
+    ]
+
+
+editGameView : Model -> List (Html Msg)
+editGameView model =
+    [ select
+        [ onInput SetEditedHomeTeam ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedHomeTeam) ] [ text t.name ]) model.teams)
+    , p
+        [ class "text-center" ]
+        [ text " versus " ]
+    , select
+        [ onInput SetEditedAwayTeam
+        , Html.Attributes.value model.editedAwayTeam.name
+        ]
+        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedAwayTeam) ] [ text t.name ]) model.teams)
+    , button
+        [ onClick EditGame
+        , class "primary center"
+        ]
+        [ text "Edit Game" ]
+    ]
+
+
+teamsView : Model -> List (Html Msg)
+teamsView model =
+    [ --     button
+      --     [ onClick ShowAddTeam
+      --     , class "primary center"
+      --     ]
+      --     [ text "Add Team" ]
+      -- ,
+      ul
+        [ class "stack stack-small" ]
+        (List.map teamView model.teams)
+    ]
+
+
+teamView : Team -> Html Msg
+teamView team =
+    li
+        []
+        [ span
+            [ class "grow" ]
+            [ text team.name ]
+        , tournamentPreferenceSelector team
+        ]
+
+
+tournamentPreferenceSelector : Team -> Html Msg
+tournamentPreferenceSelector team =
+    select
+        [ onInput (\s -> EditTournamentPreference team (tournamentPreferenceFromString s)) ]
+        [ tournamentPreferenceOption team NoPreference
+        , tournamentPreferenceOption team StartLate
+        , tournamentPreferenceOption team FinishEarly
+        , tournamentPreferenceOption team TwoGamesRest
+        ]
+
+
+tournamentPreferenceOption : Team -> TournamentPreference -> Html Msg
+tournamentPreferenceOption team tournamentPreference =
+    option
+        [ selected (team.tournamentPreference == tournamentPreference) ]
+        [ text <| tournamentPreferenceToString tournamentPreference ]
+
+
+
+-- addTeamView : List (Html Msg)
+-- addTeamView =
+--     [ input
+--         [ onInput SetTeamNameToAdd ]
+--         []
+--     , button
+--         [ onClick AddTeam
+--         , class "primary center"
+--         ]
+--         [ text "Add Team" ]
+--     ]
+-- editTeamView : Model -> List (Html Msg)
+-- editTeamView model =
+--     [ input
+--         [ onInput SetEditedTeamName
+--         , Html.Attributes.value model.editedTeamName
+--         ]
+--         []
+--     , button
+--         [ onClick EditTeam
+--         , class "primary center"
+--         ]
+--         [ text "Edit Team" ]
+--     ]
 
 
 optimiseView : Model -> List (Html Msg)
@@ -691,44 +716,48 @@ consecutiveGameClass playingConsecutiveley =
         [ class "atLeastOneGameToRecover" ]
 
 
-addGameView : Model -> List (Html Msg)
-addGameView model =
-    [ select
-        [ onInput SetHomeTeamNameToAdd ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
-    , p
-        [ class "text-center" ]
-        [ text " versus " ]
-    , select
-        [ onInput SetAwayTeamNameToAdd ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
-    , button
-        [ onClick AddGame
-        , class "primary center"
-        ]
-        [ text "Add Game" ]
-    ]
+deleteListItemButton : msg -> Html msg
+deleteListItemButton onDelete =
+    button
+        [ onClick onDelete ]
+        [ deleteIcon ]
 
 
-editGameView : Model -> List (Html Msg)
-editGameView model =
-    [ select
-        [ onInput SetEditedHomeTeam ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedHomeTeam) ] [ text t.name ]) model.teams)
-    , p
-        [ class "text-center" ]
-        [ text " versus " ]
-    , select
-        [ onInput SetEditedAwayTeam
-        , Html.Attributes.value model.editedAwayTeam.name
+deleteIcon : Html msg
+deleteIcon =
+    Svg.svg
+        [ Svg.Attributes.viewBox "0 0 448 512"
+        , Svg.Attributes.class "icon"
+        , Svg.Attributes.fill "currentColor"
+        , Svg.Attributes.stroke "currentColor"
         ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedAwayTeam) ] [ text t.name ]) model.teams)
-    , button
-        [ onClick EditGame
-        , class "primary center"
+        [ Svg.path
+            [ Svg.Attributes.d "M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"
+            ]
+            []
         ]
-        [ text "Edit Game" ]
-    ]
+
+
+editListItemButton : msg -> Html msg
+editListItemButton onEdit =
+    button
+        [ onClick onEdit ]
+        [ editIcon ]
+
+
+editIcon : Html msg
+editIcon =
+    Svg.svg
+        [ Svg.Attributes.viewBox "0 0 512 512"
+        , Svg.Attributes.class "icon"
+        , Svg.Attributes.fill "currentColor"
+        , Svg.Attributes.stroke "currentColor"
+        ]
+        [ Svg.path
+            [ Svg.Attributes.d "M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L362.3 51.7l97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.8 15.7-7.4 21.9-13.5L437.7 172.3 339.7 74.3 172.4 241.7zM96 64C43 64 0 107 0 160V416c0 53 43 96 96 96H352c53 0 96-43 96-96V320c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H96z"
+            ]
+            []
+        ]
 
 
 main : Program () Model Msg

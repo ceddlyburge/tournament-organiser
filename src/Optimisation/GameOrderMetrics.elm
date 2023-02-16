@@ -15,6 +15,38 @@ type TournamentPreference
     | NoPreference
 
 
+tournamentPreferenceToString : TournamentPreference -> String
+tournamentPreferenceToString tournamentPreference =
+    case tournamentPreference of
+        StartLate ->
+            "Start late"
+
+        FinishEarly ->
+            "Finish early"
+
+        TwoGamesRest ->
+            "Two games rest"
+
+        NoPreference ->
+            "No preference"
+
+
+tournamentPreferenceFromString : String -> TournamentPreference
+tournamentPreferenceFromString tournamentPreferenceString =
+    case tournamentPreferenceString of
+        "Start late" ->
+            StartLate
+
+        "Finish early" ->
+            FinishEarly
+
+        "Two games rest" ->
+            TwoGamesRest
+
+        _ ->
+            NoPreference
+
+
 type alias Team =
     { name : String
     , tournamentPreference : TournamentPreference
@@ -40,6 +72,13 @@ type alias Game =
     { homeTeam : Team
     , awayTeam : Team
     }
+
+
+vanillaGame : Game
+vanillaGame =
+    Game
+        vanillaTeam
+        vanillaTeam
 
 
 type alias AnalysedGame =
@@ -216,7 +255,7 @@ analyseGame previousGame game nextGame =
 
 playing : Team -> Game -> Bool
 playing team game =
-    game.homeTeam == team || game.awayTeam == team
+    game.homeTeam.name == team.name || game.awayTeam.name == team.name
 
 
 curtailWhenTeamsPlayingConsecutively : Game -> Game -> Bool

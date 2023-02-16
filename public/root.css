@@ -195,7 +195,7 @@ button:disabled {
   border-color: transparent;
 }
 
-button.list {
+li button {
   border-width: var(--s-6);
   padding: var(--s-5) var(--s-3);
 }
@@ -217,8 +217,21 @@ input:focus, select:focus {
   outline-offset: 0px;
 }
 
+li select {
+  font-size: 1em;
+  color: var(--text-color);
+  background-color: transparent;
+  border-color: var(--thead-bg-color);
+  border-width: var(--s-6);
+  padding: var(--s-5) var(--s-3);
+  border-radius: var(--s-5);
+  text-align: center;
+}
+
+
 li {
   display: flex;
+  align-items: baseline;
   margin-left: 1em;
   margin-right: 1em;
 }

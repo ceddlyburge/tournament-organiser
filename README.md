@@ -9,13 +9,16 @@
 - [x] tournament preference scores can be outside of 0 - 1 when teams play consecutively. Just set the score to zero in this case.
 - [x] finish optimise page, with good copy and suchlike.
 - [x] Add a button to get to edit team page
-- [ ] and a paste option to games page, so can paste from excel. It needs to work out the teams.
-- [ ] maybe same for teams page, and / or think about which should come first
-- [ ] generally think about best flow. Maybe it is games first and then teams? Bit of a conflict between hand entering and copy paste.
+- [x] and a paste option to games page, so can paste from excel. It needs to work out the teams.
+- [x] Choose tournament preference when adding / editing teams
+- [ ] Add text to games page to say can copy / paste on the page (from numbers, google sheets, excel 365). Maybe mention format
+- [ ] Add empty state to games page. Have a button to set the games to the default list we currently have. then can remove this from the initial state in the model.
+- [ ] invalidate optimisation if adding / editing / deleting a game, or editing a team
+- [ ] Fix this situation: "Showing the best game order I found so far. You can click 'Optimise' again to analyse more options. The team preferences are accommodated with 100-100% success"
 - [ ] add a copy option to the results page
-- [ ] choose tournament preference when adding / editing teams
 - [ ] enable / disable routes / links when relevant
 - [ ] anaylse problem edge cases
+  - [ ] copy paste with more than two columns
   - [ ] attempt to add / edit such that there are identical teams - not allowed
   - [ ] attempt to add / edit such that there are identical games - this is a possibility and is allowed
   - [ ] attempt to add a game where a team plays itself - not allowed
@@ -23,6 +26,7 @@
   - [ ] want to be able to cancel editing
   - [ ] attempt to add a team with no name
   - [ ] optimisation can't create an optimised order.
+  - [ ] delete games so that a team is no longer playing, should remove the team from the list
 - [ ] maybe sort out history / routing if I can be bothered
 - [ ] do drag drop / touch reordering if possible. This might lead to a 4th page. Maybe "Tweak"
 - [ ] maybe have an info / help button on each page (could also have a button to auto fill some stuff). Maybe empty state can handle this though
