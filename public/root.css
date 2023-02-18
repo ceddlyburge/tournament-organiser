@@ -162,9 +162,11 @@
   }
   
   .body {
-    /* max-inline-size: var(--measure); */
-    padding: var(--s2);
+    min-inline-size: calc(var(--measure)* 0.75);
+    padding-block: var(--s1);
+    padding-inline: var(--s0);
   }
+
 
 button {
   font-size: 1em;
@@ -178,14 +180,6 @@ button {
   border-radius: var(--s0);
 }
 
-.playingConsecutively {
-  color: red;
-}
-
-/* .atLeastOneGameToRecover {
-  color: green; 
-} */
-
 button:hover {
   border-color: var(--thead-color);
 }
@@ -195,10 +189,24 @@ button:disabled {
   border-color: transparent;
 }
 
+button.secondary {
+  border-width: var(--s-6);
+  padding: var(--s-5) var(--s-1);
+}
+
 li button {
   border-width: var(--s-6);
   padding: var(--s-5) var(--s-3);
 }
+
+.playingConsecutive ly {
+  color: red;
+}
+
+/* .atLeastOneGameToRecover {
+  color: green; 
+} */
+
 
 input, select {
   font-size: 1em;

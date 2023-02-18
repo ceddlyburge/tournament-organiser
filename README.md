@@ -11,12 +11,15 @@
 - [x] Add a button to get to edit team page
 - [x] and a paste option to games page, so can paste from excel. It needs to work out the teams.
 - [x] Choose tournament preference when adding / editing teams
-- [ ] Add text to games page to say can copy / paste on the page (from numbers, google sheets, excel 365). Maybe mention format
-- [ ] Add empty state to games page. Have a button to set the games to the default list we currently have. then can remove this from the initial state in the model.
-- [ ] invalidate optimisation if adding / editing / deleting a game, or editing a team
-- [ ] Fix this situation: "Showing the best game order I found so far. You can click 'Optimise' again to analyse more options. The team preferences are accommodated with 100-100% success"
+- [x] Add text to games page to say can copy / paste on the page (from numbers, google sheets, excel 365). Maybe mention format
+- [x] Add empty state to games page. Have a button to set the games to the default list we currently have. then can remove this from the initial state in the model.
+- [x] invalidate optimisation if adding / editing / deleting a game, or editing a team
+- [x] Fix this situation: "Showing the best game order I found so far. You can click 'Optimise' again to analyse more options. The team preferences are accommodated with 100-100% success"
+- [x] enable / disable routes / links when relevant
+- [x] When adding a game, allow entry of a new team (text edit), as well as choosing an existing team
+- [x] min width of page
 - [ ] add a copy option to the results page
-- [ ] enable / disable routes / links when relevant
+  - probably this will work over https, but it doesn't work locally. test again once deployed. Can test the unhappy path locally and make sure we show a message box or something.
 - [ ] anaylse problem edge cases
   - [ ] copy paste with more than two columns
   - [ ] attempt to add / edit such that there are identical teams - not allowed
@@ -25,14 +28,16 @@
   - [ ] attempt to add a game without the teams defined
   - [ ] want to be able to cancel editing
   - [ ] attempt to add a team with no name
-  - [ ] optimisation can't create an optimised order.
-  - [ ] delete games so that a team is no longer playing, should remove the team from the list
 - [ ] maybe sort out history / routing if I can be bothered
 - [ ] do drag drop / touch reordering if possible. This might lead to a 4th page. Maybe "Tweak"
-- [ ] maybe have an info / help button on each page (could also have a button to auto fill some stuff). Maybe empty state can handle this though
+- [ ] run axe / accessibility tools
+- [ ] make it easy via keyboard
+- [ ] add footer from green pages
+      = [ ] google lighthouse
 
 Sort dx. This is all optional and not sure I can be bothered
 
+- [ ] elm review
 - [ ] add view type
 - [ ] split in to smaller files, probably one per uistate, split up the Msg and Model along these lines as well, so top level one is simple
 - [ ] use opaque type / parse dont validate where possible, although testing can be an issue
@@ -41,5 +46,4 @@ Sort dx. This is all optional and not sure I can be bothered
 Release
 
 - [ ] create a build, could simply be just on netlify? Maybe something else is better though.
-- [ ] remove default initial list of teams before release
 - [ ] Release app to netlify or similar

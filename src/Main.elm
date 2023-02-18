@@ -2,8 +2,8 @@ port module Main exposing (..)
 
 import Browser
 import GameParser
-import Html exposing (Html, a, button, div, h1, h2, header, li, main_, nav, option, p, select, span, text, ul)
-import Html.Attributes exposing (class, disabled, selected)
+import Html exposing (Html, a, button, datalist, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
+import Html.Attributes exposing (class, disabled, id, list, placeholder, selected, value)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
@@ -15,6 +15,9 @@ import Svg.Attributes
 
 
 ---- Ports ----
+
+
+port copyAnalysedGames : String -> Cmd msg
 
 
 port paste : (String -> msg) -> Sub msg
@@ -131,40 +134,38 @@ type alias Model =
     }
 
 
+exampleGames : List Game
+exampleGames =
+    [ Game (Team "ULU" TwoGamesRest) (Team "Braintree" TwoGamesRest)
+    , Game (Team "ULU" TwoGamesRest) (Team "Surrey" TwoGamesRest)
+    , Game (Team "ULU" TwoGamesRest) (Team "VKC" TwoGamesRest)
+    , Game (Team "ULU" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+    , Game (Team "ULU" TwoGamesRest) (Team "East End" TwoGamesRest)
+    , Game (Team "ULU" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    , Game (Team "Braintree" TwoGamesRest) (Team "Surrey" TwoGamesRest)
+    , Game (Team "Braintree" TwoGamesRest) (Team "VKC" TwoGamesRest)
+    , Game (Team "Braintree" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+    , Game (Team "Braintree" TwoGamesRest) (Team "East End" TwoGamesRest)
+    , Game (Team "Braintree" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    , Game (Team "Surrey" TwoGamesRest) (Team "VKC" TwoGamesRest)
+    , Game (Team "Surrey" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+    , Game (Team "Surrey" TwoGamesRest) (Team "East End" TwoGamesRest)
+    , Game (Team "Surrey" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    , Game (Team "VKC" TwoGamesRest) (Team "St Albans" TwoGamesRest)
+    , Game (Team "VKC" TwoGamesRest) (Team "East End" TwoGamesRest)
+    , Game (Team "VKC" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    , Game (Team "St Albans" TwoGamesRest) (Team "East End" TwoGamesRest)
+    , Game (Team "St Albans" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    , Game (Team "East End" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    ]
+
+
 vanillaModel : Model
 vanillaModel =
     Model
         GamesView
-        [ Team "Castle" TwoGamesRest
-        , Team "ULU" FinishEarly
-        , Team "Surrey" TwoGamesRest
-        , Team "Braintree" TwoGamesRest
-        , Team "VKC" TwoGamesRest
-        , Team "St Albans" TwoGamesRest
-        , Team "East End" StartLate
-        ]
-        [ Game (Team "ULU" FinishEarly) (Team "Braintree" TwoGamesRest)
-        , Game (Team "ULU" FinishEarly) (Team "Surrey" TwoGamesRest)
-        , Game (Team "ULU" FinishEarly) (Team "VKC" TwoGamesRest)
-        , Game (Team "ULU" FinishEarly) (Team "St Albans" TwoGamesRest)
-        , Game (Team "ULU" FinishEarly) (Team "East End" StartLate)
-        , Game (Team "ULU" FinishEarly) (Team "Castle" TwoGamesRest)
-        , Game (Team "Braintree" TwoGamesRest) (Team "Surrey" TwoGamesRest)
-        , Game (Team "Braintree" TwoGamesRest) (Team "VKC" TwoGamesRest)
-        , Game (Team "Braintree" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-        , Game (Team "Braintree" TwoGamesRest) (Team "East End" StartLate)
-        , Game (Team "Braintree" TwoGamesRest) (Team "Castle" TwoGamesRest)
-        , Game (Team "Surrey" TwoGamesRest) (Team "VKC" TwoGamesRest)
-        , Game (Team "Surrey" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-        , Game (Team "Surrey" TwoGamesRest) (Team "East End" StartLate)
-        , Game (Team "Surrey" TwoGamesRest) (Team "Castle" TwoGamesRest)
-        , Game (Team "VKC" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-        , Game (Team "VKC" TwoGamesRest) (Team "East End" StartLate)
-        , Game (Team "VKC" TwoGamesRest) (Team "Castle" TwoGamesRest)
-        , Game (Team "St Albans" TwoGamesRest) (Team "East End" StartLate)
-        , Game (Team "St Albans" TwoGamesRest) (Team "Castle" TwoGamesRest)
-        , Game (Team "East End" StartLate) (Team "Castle" TwoGamesRest)
-        ]
+        []
+        []
         -- ""
         -- vanillaTeam
         -- ""
@@ -202,6 +203,7 @@ type Msg
     | ShowGames
     | ShowAddGame
     | DeleteGame Game
+    | AddExampleGames
       -- add game
     | SetHomeTeamNameToAdd String
     | SetAwayTeamNameToAdd String
@@ -216,17 +218,14 @@ type Msg
       -- Optimise
     | ShowOptimise
     | OptimiseGameOrder
-      -- Paste
+      -- Copy / Paste
+    | CopyOptimisedGames (List AnalysedGame)
     | PasteGames (List Game)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        -- Teams
-        ShowTeams ->
-            ( { model | uiState = TeamsView }, Cmd.none )
-
         -- DeleteTeam team ->
         --     ( { model | teams = List.Extra.remove team model.teams }, Cmd.none )
         -- -- Add team
@@ -257,31 +256,36 @@ update msg model =
         --       }
         --     , Cmd.none
         --     )
-        -- Game Order
+        -- Games
         ShowGames ->
-            ( { model | uiState = GamesView, games = initializeGames model.teams model.games }, Cmd.none )
+            ( { model | uiState = GamesView }, Cmd.none )
 
         DeleteGame game ->
-            ( { model | games = List.Extra.remove game model.games }, Cmd.none )
+            let
+                newModel =
+                    setGames (List.Extra.remove game model.games)
+                        { model | uiState = GamesView }
+            in
+            ( newModel, Cmd.none )
 
         ShowAddGame ->
             ( { model | uiState = AddGameView, homeTeamToAdd = vanillaTeam, awayTeamToAdd = vanillaTeam }, Cmd.none )
 
+        AddExampleGames ->
+            ( setGames exampleGames model, Cmd.none )
+
         -- Add game
         SetHomeTeamNameToAdd teamName ->
-            ( { model | homeTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+            ( { model | homeTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault (Team teamName NoPreference) }, Cmd.none )
 
         SetAwayTeamNameToAdd teamName ->
-            ( { model | awayTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+            ( { model | awayTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault (Team teamName NoPreference) }, Cmd.none )
 
         AddGame ->
             let
                 newModel =
-                    { model
-                        | games = Game model.homeTeamToAdd model.awayTeamToAdd :: model.games
-                        , uiState = GamesView
-                    }
-                        |> clearOptimisationResults
+                    setGames (Game model.homeTeamToAdd model.awayTeamToAdd :: model.games)
+                        { model | uiState = GamesView }
             in
             ( newModel, Cmd.none )
 
@@ -300,31 +304,57 @@ update msg model =
                 gameToEdit =
                     model.gameToEdit
 
+                newGames =
+                    List.Extra.setIf
+                        ((==) gameToEdit)
+                        { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
+                        model.games
+
                 newModel =
-                    { model
-                        | games =
-                            List.Extra.setIf
-                                ((==) gameToEdit)
-                                { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
-                                model.games
-                        , uiState = GamesView
-                    }
-                        |> clearOptimisationResults
+                    setGames newGames { model | uiState = GamesView }
             in
             ( newModel
             , Cmd.none
             )
 
-        -- Edit game
+        -- Teams
+        ShowTeams ->
+            ( { model | uiState = TeamsView }, Cmd.none )
+
         EditTournamentPreference teamToEdit tournamentPreference ->
             let
+                newTeam =
+                    { teamToEdit | tournamentPreference = tournamentPreference }
+
                 editedTeams =
                     List.Extra.updateIf
                         ((==) teamToEdit)
-                        (\team -> { team | tournamentPreference = tournamentPreference })
+                        (\_ -> newTeam)
                         model.teams
+
+                editedGames =
+                    List.map
+                        (\game ->
+                            let
+                                homeTeam =
+                                    if game.homeTeam == teamToEdit then
+                                        newTeam
+
+                                    else
+                                        game.homeTeam
+
+                                awayTeam =
+                                    if game.awayTeam == teamToEdit then
+                                        newTeam
+
+                                    else
+                                        game.awayTeam
+                            in
+                            { game | awayTeam = awayTeam, homeTeam = homeTeam }
+                        )
+                        model.games
             in
-            ( { model | teams = editedTeams }
+            ( setGames editedGames { model | teams = editedTeams }
             , Cmd.none
             )
 
@@ -346,42 +376,55 @@ update msg model =
             , Cmd.none
             )
 
-        -- Paste
+        -- Copy / Paste
+        CopyOptimisedGames analysedGames ->
+            ( model
+            , copyAnalysedGames
+                (List.map
+                    (\analysedGame -> analysedGame.game.homeTeam.name ++ "\t" ++ analysedGame.game.awayTeam.name)
+                    analysedGames
+                    |> String.join "\n"
+                )
+            )
+
         PasteGames games ->
             if model.uiState == GamesView then
-                let
-                    oldTeams =
-                        List.filter (\team -> List.any (\game -> playing team game) games) model.teams
-
-                    newTeams =
-                        List.concatMap (\game -> [ game.awayTeam, game.awayTeam ]) games
-                            |> List.Extra.unique
-                            |> List.filter (\newTeam -> not (List.any (\oldTeam -> oldTeam.name == newTeam.name) oldTeams))
-                in
-                ( { model | games = games, teams = oldTeams ++ newTeams }, Cmd.none )
+                ( setGames games model, Cmd.none )
 
             else
                 ( model, Cmd.none )
 
 
-initializeGames : List Team -> List Game -> List Game
-initializeGames teams existingGames =
-    case existingGames of
-        [] ->
-            List.Extra.uniquePairs teams
-                |> List.foldl (\( team1, team2 ) gameTuples -> ( team1, team2 ) :: ( team2, team1 ) :: gameTuples) []
-                |> List.map (\( homeTeam, awayTeam ) -> Game homeTeam awayTeam)
-
-        someGames ->
-            someGames
-
-
 clearOptimisationResults : Model -> Model
 clearOptimisationResults model =
-    { model | gameOrderMetrics = Nothing }
+    { model | previousGameOrderMetrics = Nothing, gameOrderMetrics = Nothing }
+
+
+setGames : List Game -> Model -> Model
+setGames games model =
+    let
+        oldTeams =
+            List.filter (\team -> List.any (\game -> playing team game) games) model.teams
+
+        newTeams =
+            List.concatMap (\game -> [ game.homeTeam, game.awayTeam ]) games
+                |> List.Extra.unique
+                |> List.filter (\newTeam -> not (List.any (\oldTeam -> oldTeam.name == newTeam.name) oldTeams))
+    in
+    { model | games = games, teams = oldTeams ++ newTeams }
+        |> clearOptimisationResults
 
 
 
+-- initializeGames : List Team -> List Game -> List Game
+-- initializeGames teams existingGames =
+--     case existingGames of
+--         [] ->
+--             List.Extra.uniquePairs teams
+--                 |> List.foldl (\( team1, team2 ) gameTuples -> ( team1, team2 ) :: ( team2, team1 ) :: gameTuples) []
+--                 |> List.map (\( homeTeam, awayTeam ) -> Game homeTeam awayTeam)
+--         someGames ->
+--             someGames
 ---- VIEW ----
 -- maybe put class center in to css file if its ubiquitous
 -- could have a stack = class "stack" function and similar as well
@@ -397,23 +440,26 @@ view model =
             , h2 [] [ text "Optimise Order of Games" ]
             , nav
                 [ class "center" ]
-                [ -- this probably wants to enable / disable appropriately. not a biggie though
-                  a
+                -- sort out the spans with some flex or something
+                [ a
                     [ onClick ShowGames ]
                     [ text "Define Games" ]
-
-                -- sort out the spans with some flex or something
                 , span [] [ text " - " ]
+                , if List.isEmpty model.games then
+                    span [] [ text "Team Options" ]
 
-                -- this probably wants to enable / disable appropriately. not a biggie though
-                , a
-                    [ onClick ShowTeams ]
-                    [ text "Team Options" ]
+                  else
+                    a
+                        [ onClick ShowTeams, disabled (List.isEmpty model.games) ]
+                        [ text "Team Options" ]
                 , span [] [ text " - " ]
-                , -- this probably wants to enable / disable appropriately. not a biggie though
-                  a
-                    [ onClick ShowOptimise ]
-                    [ text "Optimise!" ]
+                , if List.isEmpty model.games then
+                    span [] [ text "Optimise!" ]
+
+                  else
+                    a
+                        [ onClick ShowOptimise, disabled (List.isEmpty model.games) ]
+                        [ text "Optimise!" ]
                 ]
             ]
         , main_
@@ -447,15 +493,12 @@ stateView model =
 
 gamesView : Model -> List (Html Msg)
 gamesView model =
-    [ button
+    button
         [ onClick ShowAddGame
         , class "primary center"
         ]
         [ text "Add Game" ]
-    , ul
-        [ class "stack stack-small" ]
-        (List.map gameView model.games)
-    ]
+        :: gamesView2 model
 
 
 gamesView2 : Model -> List (Html Msg)
@@ -472,7 +515,15 @@ gamesView2 model =
 
 gamesViewEmptyState : List (Html Msg)
 gamesViewEmptyState =
-    [ p [] [] ]
+    [ p [] [ text "You can copy / paste games from a spreadsheet here. There should be two columns, one for each team." ]
+    , p [] [ text "You can also click on the 'Add Game' button to add games manually." ]
+    , p [] [ text "If you just want to play around, click the button below to add some example games." ]
+    , button
+        [ onClick AddExampleGames
+        , class "secondary center"
+        ]
+        [ text "Add Example Games" ]
+    ]
 
 
 gameView : Game -> Html Msg
@@ -501,15 +552,22 @@ gameView game =
 
 addGameView : Model -> List (Html Msg)
 addGameView model =
-    [ select
-        [ onInput SetHomeTeamNameToAdd ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
+    [ teamsDataList model
+    , input
+        [ onInput SetHomeTeamNameToAdd
+        , list "teamsDataList"
+        , placeholder "Please enter or select team"
+        ]
+        []
     , p
         [ class "text-center" ]
-        [ text " versus " ]
-    , select
-        [ onInput SetAwayTeamNameToAdd ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [] [ text t.name ]) model.teams)
+        []
+    , input
+        [ onInput SetAwayTeamNameToAdd
+        , list "teamsDataList"
+        , placeholder "Please enter or select team"
+        ]
+        []
     , button
         [ onClick AddGame
         , class "primary center"
@@ -520,23 +578,35 @@ addGameView model =
 
 editGameView : Model -> List (Html Msg)
 editGameView model =
-    [ select
-        [ onInput SetEditedHomeTeam ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedHomeTeam) ] [ text t.name ]) model.teams)
+    [ teamsDataList model
+    , input
+        [ onInput SetEditedHomeTeam
+        , list "teamsDataList"
+        , placeholder "Please select team"
+        ]
+        []
     , p
         [ class "text-center" ]
         [ text " versus " ]
-    , select
+    , input
         [ onInput SetEditedAwayTeam
-        , Html.Attributes.value model.editedAwayTeam.name
+        , list "teamsDataList"
+        , placeholder "Please select team"
         ]
-        (option [] [ text "Please select team" ] :: List.map (\t -> option [ Html.Attributes.selected (t == model.editedAwayTeam) ] [ text t.name ]) model.teams)
+        []
     , button
         [ onClick EditGame
         , class "primary center"
         ]
         [ text "Edit Game" ]
     ]
+
+
+teamsDataList : Model -> Html Msg
+teamsDataList model =
+    datalist
+        [ id "teamsDataList" ]
+        (List.map (\team -> option [ value team.name ] []) model.teams)
 
 
 teamsView : Model -> List (Html Msg)
@@ -618,7 +688,16 @@ optimiseView model =
                     False
 
                 ( previousGameOrderMetrics, gameOrderMetrics ) ->
-                    previousGameOrderMetrics == gameOrderMetrics
+                    previousGameOrderMetrics
+                        == gameOrderMetrics
+                        || Maybe.map .lowestTournamentPreferenceScore gameOrderMetrics
+                        == Just 1
+
+        copyDisabled =
+            model.gameOrderMetrics == Nothing
+
+        analysedGames =
+            Maybe.map .analysedGames model.gameOrderMetrics |> Maybe.withDefault []
     in
     button
         [ onClick OptimiseGameOrder
@@ -626,6 +705,12 @@ optimiseView model =
         , disabled optimiseDisabled
         ]
         [ text "Optimise" ]
+        :: button
+            [ onClick (CopyOptimisedGames analysedGames)
+            , class "primary center"
+            , disabled copyDisabled
+            ]
+            [ text "Copy to clipboard" ]
         :: optimisationView model.previousGameOrderMetrics model.gameOrderMetrics
 
 
@@ -637,14 +722,16 @@ optimisationView previousGameOrderMetrics maybeGameOrderMetrics =
 
         Just gameOrderMetrics ->
             optimisationExplanation previousGameOrderMetrics gameOrderMetrics
-                ++ [ optimisedGamesView gameOrderMetrics.analysedGames
-                   ]
+                ++ [ optimisedGamesView gameOrderMetrics.analysedGames ]
 
 
 optimisationExplanation : Maybe GameOrderMetrics -> GameOrderMetrics -> List (Html Msg)
 optimisationExplanation previousGameOrderMetrics gameOrderMetrics =
     if gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames > 0 then
         [ p [] [ text "Could not find any game orders where teams did not play back to back, showing the best result I could find." ] ]
+
+    else if gameOrderMetrics.lowestTournamentPreferenceScore == 1 then
+        [ p [] [ text "Showing the best game order, the team preferences are accommodated with 100% success" ] ]
 
     else if Just gameOrderMetrics /= previousGameOrderMetrics then
         [ p [] [ text "Showing the best game order I found so far. You can click 'Optimise' again to analyse more options." ]
@@ -671,17 +758,15 @@ preferenceExplanation gameOrderMetrics =
                 * 100
                 |> floor
                 |> String.fromInt
-    in
-    p
-        []
-        [ text
-            ("The team preferences are accommodated with "
+
+        explanation =
+            "The team preferences are accommodated with "
                 ++ lowestTournamentPreferenceScore
                 ++ "-"
                 ++ highestTournamentPreferenceScore
                 ++ "% success"
-            )
-        ]
+    in
+    p [] [ text explanation ]
 
 
 optimisedGamesView : List AnalysedGame -> Html Msg
