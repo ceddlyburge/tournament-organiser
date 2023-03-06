@@ -1,10 +1,10 @@
-module GameParserTests exposing (..)
+module GameParserTests exposing (all)
 
 import Expect
-import GameParser exposing (..)
+import GameParser exposing (gameParser, gamesParser)
 import Optimisation.GameOrderMetrics exposing (Game, Team, TournamentPreference(..))
-import Parser exposing (..)
-import Test exposing (..)
+import Parser
+import Test exposing (Test, describe, test)
 
 
 all : Test

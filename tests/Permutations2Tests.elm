@@ -1,103 +1,127 @@
-module Permutations2Tests exposing (..)
+module Permutations2Tests exposing (testGetMobile, testNext, testNextPermutation)
 
 import Array
 import Expect
-import Optimisation.Permutations2 exposing (..)
-import Test exposing (..)
+import Optimisation.Permutations2 exposing (Element, left, right, first, next, getState, getPermutation, calculateNextPermutation, Step(..), calculateMobile)
+import Test exposing (test, describe, Test)
 
 
+iteration1 : Array.Array Element
 iteration1 =
     Array.fromList [ Element 0 left, Element 1 left, Element 2 left, Element 3 left ]
 
 
+iteration2 : Array.Array Element
 iteration2 =
     Array.fromList [ Element 0 left, Element 1 left, Element 3 left, Element 2 left ]
 
 
+iteration3 : Array.Array Element
 iteration3 =
     Array.fromList [ Element 0 left, Element 3 left, Element 1 left, Element 2 left ]
 
 
+iteration4 : Array.Array Element
 iteration4 =
     Array.fromList [ Element 3 left, Element 0 left, Element 1 left, Element 2 left ]
 
 
+iteration5 : Array.Array Element
 iteration5 =
     Array.fromList [ Element 3 right, Element 0 left, Element 2 left, Element 1 left ]
 
 
+iteration6 : Array.Array Element
 iteration6 =
     Array.fromList [ Element 0 left, Element 3 right, Element 2 left, Element 1 left ]
 
 
+iteration7 : Array.Array Element
 iteration7 =
     Array.fromList [ Element 0 left, Element 2 left, Element 3 right, Element 1 left ]
 
 
+iteration8 : Array.Array Element
 iteration8 =
     Array.fromList [ Element 0 left, Element 2 left, Element 1 left, Element 3 right ]
 
 
+iteration9 : Array.Array Element
 iteration9 =
     Array.fromList [ Element 2 left, Element 0 left, Element 1 left, Element 3 left ]
 
 
+iteration10 : Array.Array Element
 iteration10 =
     Array.fromList [ Element 2 left, Element 0 left, Element 3 left, Element 1 left ]
 
 
+iteration11 : Array.Array Element
 iteration11 =
     Array.fromList [ Element 2 left, Element 3 left, Element 0 left, Element 1 left ]
 
 
+iteration12 : Array.Array Element
 iteration12 =
     Array.fromList [ Element 3 left, Element 2 left, Element 0 left, Element 1 left ]
 
 
+iteration13 : Array.Array Element
 iteration13 =
     Array.fromList [ Element 3 right, Element 2 right, Element 1 left, Element 0 left ]
 
 
+iteration14 : Array.Array Element
 iteration14 =
     Array.fromList [ Element 2 right, Element 3 right, Element 1 left, Element 0 left ]
 
 
+iteration15 : Array.Array Element
 iteration15 =
     Array.fromList [ Element 2 right, Element 1 left, Element 3 right, Element 0 left ]
 
 
+iteration16 : Array.Array Element
 iteration16 =
     Array.fromList [ Element 2 right, Element 1 left, Element 0 left, Element 3 right ]
 
 
+iteration17 : Array.Array Element
 iteration17 =
     Array.fromList [ Element 1 left, Element 2 right, Element 0 left, Element 3 left ]
 
 
+iteration18 : Array.Array Element
 iteration18 =
     Array.fromList [ Element 1 left, Element 2 right, Element 3 left, Element 0 left ]
 
 
+iteration19 : Array.Array Element
 iteration19 =
     Array.fromList [ Element 1 left, Element 3 left, Element 2 right, Element 0 left ]
 
 
+iteration20 : Array.Array Element
 iteration20 =
     Array.fromList [ Element 3 left, Element 1 left, Element 2 right, Element 0 left ]
 
 
+iteration21 : Array.Array Element
 iteration21 =
     Array.fromList [ Element 3 right, Element 1 left, Element 0 left, Element 2 right ]
 
 
+iteration22 : Array.Array Element
 iteration22 =
     Array.fromList [ Element 1 left, Element 3 right, Element 0 left, Element 2 right ]
 
 
+iteration23 : Array.Array Element
 iteration23 =
     Array.fromList [ Element 1 left, Element 0 left, Element 3 right, Element 2 right ]
 
 
+iteration24 : Array.Array Element
 iteration24 =
     Array.fromList [ Element 1 left, Element 0 left, Element 2 right, Element 3 right ]
 

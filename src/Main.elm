@@ -1,4 +1,4 @@
-port module Main exposing (..)
+port module Main exposing (Model, Msg(..), UiState(..), main)
 
 import Browser
 import GameParser
@@ -47,66 +47,10 @@ type UiState
     | AddGameView
     | EditGameView
     | TeamsView
-      -- | AddTeamView
-      -- | EditTeamView
     | OptimiseView
 
 
 
--- factorial : Int -> Int
--- factorial n =
---     List.product (List.range 1 n)
--- optimiseInChunks : List Game -> Optimisation -> Optimisation
--- optimiseInChunks games optimisation =
---     case optimisation of
---         NotStarted ->
---             optimiseInChunks2
---                 { analysedGames = []
---                 , analysedTeams = []
---                 , occurencesOfTeamsPlayingConsecutiveGames = List.length games
---                 , tournamentPreferenceScore = 0
---                 }
---                 10000
---                 (first games)
---         InProgress gameOrderMetrics maxPermutation step ->
---             Debug.log "optimise2" (optimiseInChunks2 gameOrderMetrics (maxPermutation + 10000) step)
---         Finished _ _ ->
---             optimiseInChunks2
---                 { analysedGames = []
---                 , analysedTeams = []
---                 , occurencesOfTeamsPlayingConsecutiveGames = List.length games
---                 , tournamentPreferenceScore = 0
---                 }
---                 10000
---                 (first games)
--- optimiseInChunks2 : GameOrderMetrics -> Int -> Step Game -> Optimisation
--- optimiseInChunks2 currentBestGameOrderMetrics maxPermutation step =
---     case step of
---         Done ->
---             -- todo store total permutations count, maybe in the state
---             Finished currentBestGameOrderMetrics 0
---         Next state permutation ->
---             let
---                 gameOrderMetrics =
---                     calculateGameOrderMetrics permutation
---                 nextBestGameOrderMetrics =
---                     if
---                         gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
---                             < currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
---                             || (gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
---                                     == currentBestGameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames
---                                     && gameOrderMetrics.tournamentPreferenceScore
---                                     > currentBestGameOrderMetrics.tournamentPreferenceScore
---                                )
---                     then
---                         gameOrderMetrics
---                     else
---                         currentBestGameOrderMetrics
---             in
---             if state.count >= maxPermutation then
---                 InProgress nextBestGameOrderMetrics maxPermutation step
---             else
---                 optimiseInChunks2 nextBestGameOrderMetrics maxPermutation (next state)
 
 
 type alias Model =
@@ -114,16 +58,11 @@ type alias Model =
     , teams : List Team
     , games : List Game
 
-    -- add team
-    -- , teamNameToAdd : String
-    -- -- edit team
-    -- , teamToEdit : Team
-    -- , editedTeamName : String
     -- add game
     , homeTeamToAdd : Team
     , awayTeamToAdd : Team
 
-    -- edit game (might also want to allow change of order here, but probably it will happen another way)
+    -- edit game
     , gameToEdit : Game
     , editedHomeTeam : Team
     , editedAwayTeam : Team
@@ -166,9 +105,6 @@ vanillaModel =
         GamesView
         []
         []
-        -- ""
-        -- vanillaTeam
-        -- ""
         vanillaTeam
         vanillaTeam
         vanillaGame
@@ -189,16 +125,6 @@ init =
 
 type Msg
     = ShowTeams
-      -- delete team
-      -- | DeleteTeam Team
-      -- add team
-      -- | ShowAddTeam
-      -- | SetTeamNameToAdd String
-      -- | AddTeam
-      -- edit team
-      -- | ShowEditTeam Team
-      -- | SetEditedTeamName String
-      -- | EditTeam
       -- define games
     | ShowGames
     | ShowAddGame
@@ -226,42 +152,13 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        -- DeleteTeam team ->
-        --     ( { model | teams = List.Extra.remove team model.teams }, Cmd.none )
-        -- -- Add team
-        -- ShowAddTeam ->
-        --     ( { model | uiState = AddTeamView }, Cmd.none )
-        -- SetTeamNameToAdd teamName ->
-        --     ( { model | teamNameToAdd = teamName }, Cmd.none )
-        -- AddTeam ->
-        --     ( { model | teams = Team model.teamNameToAdd TwoGamesRest :: model.teams, uiState = TeamsView }, Cmd.none )
-        -- -- Edit team
-        -- ShowEditTeam team ->
-        --     ( { model | uiState = EditTeamView, teamToEdit = team, editedTeamName = team.name }, Cmd.none )
-        -- SetEditedTeamName teamName ->
-        --     ( { model | editedTeamName = teamName }, Cmd.none )
-        -- EditTeam ->
-        --     ( { model
-        --         | teams =
-        --             List.map
-        --                 --could use list.extra.updateif / setif here, its probably slightly better
-        --                 (\t ->
-        --                     if t == model.teamToEdit then
-        --                         { t | name = model.editedTeamName }
-        --                     else
-        --                         t
-        --                 )
-        --                 model.teams
-        --         , uiState = TeamsView
-        --       }
-        --     , Cmd.none
-        --     )
         -- Games
         ShowGames ->
             ( { model | uiState = GamesView }, Cmd.none )
 
         DeleteGame game ->
             let
+                newModel : Model
                 newModel =
                     setGames (List.Extra.remove game model.games)
                         { model | uiState = GamesView }
@@ -283,6 +180,7 @@ update msg model =
 
         AddGame ->
             let
+                newModel : Model
                 newModel =
                     setGames (Game model.homeTeamToAdd model.awayTeamToAdd :: model.games)
                         { model | uiState = GamesView }
@@ -301,15 +199,18 @@ update msg model =
 
         EditGame ->
             let
+                gameToEdit : Game
                 gameToEdit =
                     model.gameToEdit
 
+                newGames : List Game
                 newGames =
                     List.Extra.setIf
                         ((==) gameToEdit)
                         { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
                         model.games
 
+                newModel : Model
                 newModel =
                     setGames newGames { model | uiState = GamesView }
             in
@@ -323,19 +224,23 @@ update msg model =
 
         EditTournamentPreference teamToEdit tournamentPreference ->
             let
+                newTeam : Team
                 newTeam =
                     { teamToEdit | tournamentPreference = tournamentPreference }
 
+                editedTeams : List Team
                 editedTeams =
                     List.Extra.updateIf
                         ((==) teamToEdit)
                         (\_ -> newTeam)
                         model.teams
 
+                editedGames : List { a | awayTeam : Team, homeTeam : Team }
                 editedGames =
                     List.map
                         (\game ->
                             let
+                                homeTeam : Team
                                 homeTeam =
                                     if game.homeTeam == teamToEdit then
                                         newTeam
@@ -343,6 +248,7 @@ update msg model =
                                     else
                                         game.homeTeam
 
+                                awayTeam : Team
                                 awayTeam =
                                     if game.awayTeam == teamToEdit then
                                         newTeam
@@ -364,6 +270,7 @@ update msg model =
 
         OptimiseGameOrder ->
             let
+                games : List Game
                 games =
                     Maybe.map (\gameOrderMetrics -> List.map .game gameOrderMetrics.analysedGames) model.gameOrderMetrics
                         |> Maybe.withDefault model.games
@@ -372,7 +279,6 @@ update msg model =
                 | previousGameOrderMetrics = model.gameOrderMetrics
                 , gameOrderMetrics = Just (optimiseAllPermutations games model.gameOrderMetrics)
               }
-              -- ( { model | optimisation = optimiseInChunks model.games model.optimisation }
             , Cmd.none
             )
 
@@ -403,9 +309,11 @@ clearOptimisationResults model =
 setGames : List Game -> Model -> Model
 setGames games model =
     let
+        oldTeams : List Team
         oldTeams =
             List.filter (\team -> List.any (\game -> playing team game) games) model.teams
 
+        newTeams : List { name : String, tournamentPreference : TournamentPreference }
         newTeams =
             List.concatMap (\game -> [ game.homeTeam, game.awayTeam ]) games
                 |> List.Extra.unique
@@ -416,15 +324,6 @@ setGames games model =
 
 
 
--- initializeGames : List Team -> List Game -> List Game
--- initializeGames teams existingGames =
---     case existingGames of
---         [] ->
---             List.Extra.uniquePairs teams
---                 |> List.foldl (\( team1, team2 ) gameTuples -> ( team1, team2 ) :: ( team2, team1 ) :: gameTuples) []
---                 |> List.map (\( homeTeam, awayTeam ) -> Game homeTeam awayTeam)
---         someGames ->
---             someGames
 ---- VIEW ----
 -- maybe put class center in to css file if its ubiquitous
 -- could have a stack = class "stack" function and similar as well
@@ -471,10 +370,6 @@ view model =
 stateView : Model -> List (Html Msg)
 stateView model =
     case model.uiState of
-        -- AddTeamView ->
-        --     addTeamView
-        -- EditTeamView ->
-        --     editTeamView model
         GamesView ->
             gamesView model
 
@@ -611,13 +506,7 @@ teamsDataList model =
 
 teamsView : Model -> List (Html Msg)
 teamsView model =
-    [ --     button
-      --     [ onClick ShowAddTeam
-      --     , class "primary center"
-      --     ]
-      --     [ text "Add Team" ]
-      -- ,
-      ul
+    [ ul
         [ class "stack stack-small" ]
         (List.map teamView model.teams)
     ]
@@ -653,35 +542,10 @@ tournamentPreferenceOption team tournamentPreference =
 
 
 
--- addTeamView : List (Html Msg)
--- addTeamView =
---     [ input
---         [ onInput SetTeamNameToAdd ]
---         []
---     , button
---         [ onClick AddTeam
---         , class "primary center"
---         ]
---         [ text "Add Team" ]
---     ]
--- editTeamView : Model -> List (Html Msg)
--- editTeamView model =
---     [ input
---         [ onInput SetEditedTeamName
---         , Html.Attributes.value model.editedTeamName
---         ]
---         []
---     , button
---         [ onClick EditTeam
---         , class "primary center"
---         ]
---         [ text "Edit Team" ]
---     ]
-
-
 optimiseView : Model -> List (Html Msg)
 optimiseView model =
     let
+        optimiseDisabled : Bool
         optimiseDisabled =
             case ( model.previousGameOrderMetrics, model.gameOrderMetrics ) of
                 ( Nothing, _ ) ->
@@ -693,9 +557,11 @@ optimiseView model =
                         || Maybe.map .lowestTournamentPreferenceScore gameOrderMetrics
                         == Just 1
 
+        copyDisabled : Bool
         copyDisabled =
             model.gameOrderMetrics == Nothing
 
+        analysedGames : List AnalysedGame
         analysedGames =
             Maybe.map .analysedGames model.gameOrderMetrics |> Maybe.withDefault []
     in
@@ -747,18 +613,21 @@ optimisationExplanation previousGameOrderMetrics gameOrderMetrics =
 preferenceExplanation : GameOrderMetrics -> Html Msg
 preferenceExplanation gameOrderMetrics =
     let
+        lowestTournamentPreferenceScore : String
         lowestTournamentPreferenceScore =
             gameOrderMetrics.lowestTournamentPreferenceScore
                 * 100
                 |> floor
                 |> String.fromInt
 
+        highestTournamentPreferenceScore : String
         highestTournamentPreferenceScore =
             gameOrderMetrics.highestTournamentPreferenceScore
                 * 100
                 |> floor
                 |> String.fromInt
 
+        explanation : String
         explanation =
             "The team preferences are accommodated with "
                 ++ lowestTournamentPreferenceScore

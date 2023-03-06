@@ -3,7 +3,7 @@
 - [x] make sure the gameOrderMetrics calculation works properly
 - [x] optimised games shouldn't be green. red is still good for back to back games though.
 - [x] Improve comparison of game order metrics and move to gameordermtrics module. If the minimum of the metrics is equal, then the next thing to differentiate on is the average. If the average is also the same, then go for the one with the lowest max (which means that teams will be treated as fairly as possible)
-- [ ] remove optimise in chunks. it was a good idea, but doesn't work out in practice. Update the optimisation type / model to reflect what it now does.
+- [x] remove optimise in chunks. it was a good idea, but doesn't work out in practice. Update the optimisation type / model to reflect what it now does.
 - [x] Is the 0.2 of the two games rest right? It looks like the number should be a lot higher. braintree 3 single rests, 0.2. Surrey 1 single rest, also 0.2. so yep, definitely wrong. need another test.
 - [x] produce something when no good permutation found. Maybe try again with no curtailment, but still with the limit. with test.
 - [x] tournament preference scores can be outside of 0 - 1 when teams play consecutively. Just set the score to zero in this case.
@@ -33,11 +33,11 @@
 - [ ] run axe / accessibility tools
 - [ ] make it easy via keyboard
 - [ ] add footer from green pages
-      = [ ] google lighthouse
+  - [ ] google lighthouse
 
 Sort dx. This is all optional and not sure I can be bothered
 
-- [ ] elm review
+- [x] elm review
 - [ ] add view type
 - [ ] split in to smaller files, probably one per uistate, split up the Msg and Model along these lines as well, so top level one is simple
 - [ ] use opaque type / parse dont validate where possible, although testing can be an issue
@@ -47,3 +47,5 @@ Release
 
 - [ ] create a build, could simply be just on netlify? Maybe something else is better though.
 - [ ] Release app to netlify or similar
+- [ ] Update read with some friendly text
+- [ ] Publicise on canoe polo facebook groups

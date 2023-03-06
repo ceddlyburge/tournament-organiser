@@ -2,18 +2,12 @@
 -- https://www.geeksforgeeks.org/johnson-trotter-algorithm/
 -- The haskell permutations function can't be expressed in Elm I think
 -- https://stackoverflow.com/questions/24484348/what-does-this-list-permutations-implementation-in-haskell-exactly-do
--- Element, calculateNextPermutation, calculateMobile, left, right are exposed to make testing easier / better
+-- A lot of things are exposed to make testing easier / better, but otherwise a parse don't validate approach would be better
 
 
-module Optimisation.Permutations2 exposing (Element, Step(..), calculateMobile, calculateNextPermutation, first, getPermutation, getState, left, next, right)
+module Optimisation.Permutations2 exposing (Element, State, Step(..), calculateMobile, calculateNextPermutation, first, getPermutation, getState, left, next, right)
 
 import Array exposing (Array)
-import Html.Attributes exposing (step)
-import Json.Decode exposing (array)
-
-
-
--- todo: parse don't validate, although makes testing tricky
 
 
 type alias Element =
@@ -34,11 +28,13 @@ type alias State a =
     }
 
 
+right : Bool
 right =
     -- maybe have a type for this, then can also represent an error type state
     True
 
 
+left : Bool
 left =
     False
 
@@ -46,6 +42,7 @@ left =
 first : List a -> Step a
 first initialList =
     let
+        initialArray : Array a
         initialArray =
             Array.fromList initialList
     in
@@ -57,6 +54,7 @@ first initialList =
         initialList
 
 
+getState : Step a -> Maybe (State a)
 getState step =
     case step of
         Done ->
@@ -66,6 +64,7 @@ getState step =
             Just state
 
 
+getPermutation : Step a -> Maybe (List a)
 getPermutation step =
     case step of
         Done ->
@@ -100,6 +99,7 @@ calculateNextPermutation previousPermutation =
 swapAndUpdateDirections : Array Element -> ( Int, Element ) -> Array Element
 swapAndUpdateDirections previousPermutation ( mobileIndex, mobileElement ) =
     let
+        swapped : Array Element
         swapped =
             if mobileElement.direction == left then
                 swap mobileIndex (mobileIndex - 1) previousPermutation
@@ -121,9 +121,11 @@ swapAndUpdateDirections previousPermutation ( mobileIndex, mobileElement ) =
 swap : Int -> Int -> Array a -> Array a
 swap index1 index2 array =
     let
+        maybeValue1 : Maybe a
         maybeValue1 =
             Array.get index1 array
 
+        maybeValue2 : Maybe a
         maybeValue2 =
             Array.get index2 array
     in
@@ -132,7 +134,7 @@ swap index1 index2 array =
             Array.set index1 value2 array
                 |> Array.set index2 value1
 
-        ( _, _ ) ->
+        _ ->
             array
 
 
@@ -144,6 +146,7 @@ calculateMobile array =
 calculateMobile_ : Array Element -> Int -> Maybe ( Int, Element ) -> Maybe ( Int, Element )
 calculateMobile_ array index maybeCurrentGreatest =
     let
+        maybeElement : Maybe Element
         maybeElement =
             Array.get index array
     in

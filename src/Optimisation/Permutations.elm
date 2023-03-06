@@ -1,8 +1,6 @@
 module Optimisation.Permutations exposing (permutations, permutations2)
 
 import List.Extra
-import Svg.Attributes exposing (limitingConeAngle)
-
 
 
 {-
@@ -95,48 +93,6 @@ permutations2Internal limit curtail combinations currentPermutation ( iterationC
 
 
 
--- depthFirstPermutations
--- foldPermutations : (a -> a -> Bool) -> (b -> List a -> b) -> b -> List a -> b
--- foldPermutations curtail fold initialValue xs =
---     foldPermutationsInternal curtail fold Nothing initialValue xs
--- foldPermutationsInternal : (a -> a -> Bool) -> (b -> List a -> b) -> Maybe a -> b -> List a -> b
--- foldPermutationsInternal curtail fold previousValue accumulation xs_ =
---     case xs_ of
---         [] ->
---             accumulation
---         xs ->
---             let
---                 f ( y, ys ) accumulation2 =
---                     if maybeCurtail curtail previousValue y then
---                         accumulation2
---                     else
---                         List.map
---                             (\permuation ->
---                                 case ( ys, permuation ) of
---                                     ( _ :: _, [] ) ->
---                                         []
---                                     ( _, zs ) ->
---                                         y :: zs
---                             )
---                             foldPermutationsInternal curtail fold (Just y) accumulation2 ys
---             in
---             List.foldr f accumulation (List.Extra.select xs)
--- foldl : (a -> b -> b) -> b -> List a -> b
--- foldl func acc list =
---     case list of
---         [] ->
---             acc
---         x :: xs ->
---             foldl func (func x acc) xs
-
-
-{-| Return the list of of all permutations of a list. The result is in lexicographic order.
-permutations [ 1, 2, 3 ]
---> [ [ 1, 2, 3 ], [ 1, 3, 2 ], [ 2, 1, 3 ], [ 2, 3, 1 ], [ 3, 1, 2 ], [ 3, 2, 1 ] ]
-
-    from List.Extra, with addedd curtailment
-
--}
 permutations : (a -> a -> Bool) -> List a -> List (List a)
 permutations curtail xs =
     permutationsInternal curtail Nothing xs
@@ -150,6 +106,7 @@ permutationsInternal curtail previousValue xs_ =
 
         xs ->
             let
+                f : (a, List a) -> List (List a)
                 f ( y, ys ) =
                     if maybeCurtail curtail previousValue y then
                         [ [] ]

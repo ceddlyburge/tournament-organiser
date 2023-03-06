@@ -1,7 +1,7 @@
-module GameParser exposing (..)
+module GameParser exposing (gameParser, gamesParser)
 
 import Optimisation.GameOrderMetrics exposing (Game, Team, TournamentPreference(..))
-import Parser exposing (..)
+import Parser exposing (Parser, (|=), (|.))
 
 
 gamesParser : Parser (List Game)
@@ -10,22 +10,22 @@ gamesParser =
         { start = ""
         , separator = "\n"
         , end = ""
-        , spaces = chompWhile (\char -> char == '\u{000D}')
+        , spaces = Parser.chompWhile (\char -> char == '\u{000D}')
         , item = gameParser
-        , trailing = Optional
+        , trailing = Parser.Optional
         }
 
 
 gameParser : Parser Game
 gameParser =
-    succeed Game
+    Parser.succeed Game
         |= teamParser
-        |. symbol "\t"
+        |. Parser.symbol "\t"
         |= teamParser
 
 
 teamParser : Parser Team
 teamParser =
-    chompWhile (\char -> Char.isAlphaNum char || char == ' ')
-        |> getChompedString
+    Parser.chompWhile (\char -> Char.isAlphaNum char || char == ' ')
+        |> Parser.getChompedString
         |> Parser.map (\name -> Team name NoPreference)

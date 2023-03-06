@@ -1,10 +1,9 @@
-module GameOrderMetricsTests exposing (..)
+module GameOrderMetricsTests exposing (all)
 
 import Expect
 import List
-import Main exposing (..)
-import Optimisation.GameOrderMetrics exposing (..)
-import Test exposing (..)
+import Optimisation.GameOrderMetrics exposing (calculateGameOrderMetrics, Game, AnalysedGame, calculateTeamTournamentPreferenceScore, AnalysedTeamFirstPass, AnalysedTeam, Team, TournamentPreference(..), analyseTeams, optimiseAllPermutations)
+import Test exposing (Test, describe, test)
 
 
 all : Test
@@ -266,30 +265,37 @@ all =
         ]
 
 
+castleFinishEarly : Team
 castleFinishEarly =
     Team "Castle" FinishEarly
 
 
+avonTwoGamesRest : Team
 avonTwoGamesRest =
     Team "Avon" TwoGamesRest
 
 
+batterseaStartLate : Team
 batterseaStartLate =
     Team "Battersea" StartLate
 
 
+uluTwoGamesRest : Team
 uluTwoGamesRest =
     Team "Ulu" TwoGamesRest
 
 
+claphamTwoGamesRest : Team
 claphamTwoGamesRest =
     Team "Clapham" TwoGamesRest
 
 
+anyTeam : Team
 anyTeam =
     team "Any team"
 
 
+anyGame : Game
 anyGame =
     Game (team "Any team 1") (team "Any team 2")
 
