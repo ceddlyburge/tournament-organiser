@@ -167,6 +167,15 @@
     padding-inline: var(--s0);
   }
 
+div.teamForm {
+  display: flex;
+  column-gap: var(--s-3);
+}
+
+div.teamForm input {
+  width: 30%;
+  flex-grow: 1;
+}
 
 button {
   font-size: 1em;

@@ -3,7 +3,7 @@ port module Main exposing (Model, Msg(..), UiState(..), main)
 import Browser
 import GameParser
 import Html exposing (Html, a, button, datalist, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
-import Html.Attributes exposing (class, disabled, id, list, placeholder, selected, value)
+import Html.Attributes exposing (class, default, disabled, id, list, placeholder, selected, title, value, width)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
@@ -50,9 +50,6 @@ type UiState
     | OptimiseView
 
 
-
-
-
 type alias Model =
     { uiState : UiState
     , teams : List Team
@@ -64,8 +61,8 @@ type alias Model =
 
     -- edit game
     , gameToEdit : Game
-    , editedHomeTeam : Team
-    , editedAwayTeam : Team
+    , homeTeamNameToEdit : String
+    , awayTeamNameToEdit : String
 
     -- optimise
     , gameOrderMetrics : Maybe GameOrderMetrics
@@ -108,8 +105,8 @@ vanillaModel =
         vanillaTeam
         vanillaTeam
         vanillaGame
-        vanillaTeam
-        vanillaTeam
+        ""
+        ""
         Nothing
         Nothing
 
@@ -189,13 +186,13 @@ update msg model =
 
         -- Edit game
         ShowEditGame game ->
-            ( { model | uiState = EditGameView, gameToEdit = game, editedHomeTeam = game.homeTeam, editedAwayTeam = game.awayTeam }, Cmd.none )
+            ( { model | uiState = EditGameView, gameToEdit = game, homeTeamNameToEdit = game.homeTeam.name, awayTeamNameToEdit = game.awayTeam.name }, Cmd.none )
 
-        SetEditedHomeTeam homeTeamName ->
-            ( { model | editedHomeTeam = List.Extra.find (\t -> t.name == homeTeamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+        SetEditedHomeTeam homeTeamNameToEdit ->
+            ( { model | homeTeamNameToEdit = homeTeamNameToEdit }, Cmd.none )
 
-        SetEditedAwayTeam awayTeamName ->
-            ( { model | editedAwayTeam = List.Extra.find (\t -> t.name == awayTeamName) model.teams |> Maybe.withDefault vanillaTeam }, Cmd.none )
+        SetEditedAwayTeam awayTeamNameToEdit ->
+            ( { model | awayTeamNameToEdit = awayTeamNameToEdit }, Cmd.none )
 
         EditGame ->
             let
@@ -203,11 +200,19 @@ update msg model =
                 gameToEdit =
                     model.gameToEdit
 
+                newHomeTeam =
+                    List.Extra.find (\t -> t.name == model.homeTeamNameToEdit) model.teams
+                        |> Maybe.withDefault { vanillaTeam | name = model.homeTeamNameToEdit }
+
+                newAwayTeam =
+                    List.Extra.find (\t -> t.name == model.awayTeamNameToEdit) model.teams
+                        |> Maybe.withDefault { vanillaTeam | name = model.awayTeamNameToEdit }
+
                 newGames : List Game
                 newGames =
                     List.Extra.setIf
                         ((==) gameToEdit)
-                        { gameToEdit | homeTeam = model.editedHomeTeam, awayTeam = model.editedAwayTeam }
+                        { gameToEdit | homeTeam = newHomeTeam, awayTeam = newAwayTeam }
                         model.games
 
                 newModel : Model
@@ -235,7 +240,7 @@ update msg model =
                         (\_ -> newTeam)
                         model.teams
 
-                editedGames : List { a | awayTeam : Team, homeTeam : Team }
+                editedGames : List Game
                 editedGames =
                     List.map
                         (\game ->
@@ -447,53 +452,81 @@ gameView game =
 
 addGameView : Model -> List (Html Msg)
 addGameView model =
+    let
+        addGameDisabled =
+            model.homeTeamToAdd.name == "" || model.awayTeamToAdd.name == "" || model.homeTeamToAdd.name == model.awayTeamToAdd.name
+    in
     [ teamsDataList model
-    , input
-        [ onInput SetHomeTeamNameToAdd
-        , list "teamsDataList"
-        , placeholder "Please enter or select team"
+    , div
+        [ class "teamForm" ]
+        [ input
+            [ onInput SetHomeTeamNameToAdd
+            , list "teamsDataList"
+            , placeholder "Enter team ..."
+            ]
+            []
+        , span
+            []
+            [ text "-" ]
+        , input
+            [ onInput SetAwayTeamNameToAdd
+            , list "teamsDataList"
+            , placeholder "Enter team ..."
+            ]
+            []
         ]
-        []
-    , p
-        [ class "text-center" ]
-        []
-    , input
-        [ onInput SetAwayTeamNameToAdd
-        , list "teamsDataList"
-        , placeholder "Please enter or select team"
-        ]
-        []
     , button
-        [ onClick AddGame
+        [ disabled addGameDisabled
+        , onClick AddGame
         , class "primary center"
         ]
         [ text "Add Game" ]
+    , button
+        [ onClick ShowGames
+        , class "secondary center"
+        ]
+        [ text "Cancel" ]
     ]
 
 
 editGameView : Model -> List (Html Msg)
 editGameView model =
+    let
+        editGameDisabled =
+            model.homeTeamNameToEdit == "" || model.awayTeamNameToEdit == "" || model.homeTeamNameToEdit == model.awayTeamNameToEdit
+    in
     [ teamsDataList model
-    , input
-        [ onInput SetEditedHomeTeam
-        , list "teamsDataList"
-        , placeholder "Please select team"
+    , div
+        [ class "teamForm" ]
+        [ input
+            [ onInput SetEditedHomeTeam
+            , list "teamsDataList"
+            , placeholder "Enter team ..."
+            , value model.homeTeamNameToEdit
+            ]
+            []
+        , span
+            []
+            [ text "-" ]
+        , input
+            [ onInput SetEditedAwayTeam
+            , list "teamsDataList"
+            , placeholder "Enter team ..."
+            , value model.awayTeamNameToEdit
+            ]
+            []
         ]
-        []
-    , p
-        [ class "text-center" ]
-        [ text " versus " ]
-    , input
-        [ onInput SetEditedAwayTeam
-        , list "teamsDataList"
-        , placeholder "Please select team"
-        ]
-        []
     , button
-        [ onClick EditGame
+        [ disabled editGameDisabled
+        , onClick EditGame
         , class "primary center"
         ]
         [ text "Edit Game" ]
+    , button
+        [ onClick ShowGames
+        , class "secondary center"
+        ]
+        [ text "Cancel" ]
     ]
 
 
@@ -526,7 +559,9 @@ teamView team =
 tournamentPreferenceSelector : Team -> Html Msg
 tournamentPreferenceSelector team =
     select
-        [ onInput (\s -> EditTournamentPreference team (tournamentPreferenceFromString s)) ]
+        [ onInput (\s -> EditTournamentPreference team (tournamentPreferenceFromString s))
+        , title "Choose team preference"
+        ]
         [ tournamentPreferenceOption team NoPreference
         , tournamentPreferenceOption team StartLate
         , tournamentPreferenceOption team FinishEarly
@@ -539,7 +574,6 @@ tournamentPreferenceOption team tournamentPreference =
     option
         [ selected (team.tournamentPreference == tournamentPreference) ]
         [ text <| tournamentPreferenceToString tournamentPreference ]
-
 
 
 optimiseView : Model -> List (Html Msg)
@@ -673,7 +707,9 @@ consecutiveGameClass playingConsecutiveley =
 deleteListItemButton : msg -> Html msg
 deleteListItemButton onDelete =
     button
-        [ onClick onDelete ]
+        [ onClick onDelete
+        , title "Delete"
+        ]
         [ deleteIcon ]
 
 
@@ -695,7 +731,9 @@ deleteIcon =
 editListItemButton : msg -> Html msg
 editListItemButton onEdit =
     button
-        [ onClick onEdit ]
+        [ onClick onEdit
+        , title "Edit"
+        ]
         [ editIcon ]
 
 

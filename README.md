@@ -18,22 +18,29 @@
 - [x] enable / disable routes / links when relevant
 - [x] When adding a game, allow entry of a new team (text edit), as well as choosing an existing team
 - [x] min width of page
-- [ ] add a copy option to the results page
+- [-] add a copy option to the results page
   - probably this will work over https, but it doesn't work locally. test again once deployed. Can test the unhappy path locally and make sure we show a message box or something.
-- [ ] anaylse problem edge cases
-  - [ ] copy paste with more than two columns
-  - [ ] attempt to add / edit such that there are identical teams - not allowed
-  - [ ] attempt to add / edit such that there are identical games - this is a possibility and is allowed
-  - [ ] attempt to add a game where a team plays itself - not allowed
-  - [ ] attempt to add a game without the teams defined
-  - [ ] want to be able to cancel editing
-  - [ ] attempt to add a team with no name
+- [x] anaylse problem edge cases
+  - [x] copy paste with more than two columns. This works ok, it just doesn't work. Probably a better message would be good. Excel might has 'vs' and suchlike.
+  - [x] attempt to add / edit such that there are identical teams - not allowed. It isn't possible to add / edit teams any more.
+  - [x] attempt to add / edit such that there are identical games - this is a possibility and is allowed
+  - [x] attempt to add a game where a team plays itself - not allowed
+  - [x] attempt to add a game without the teams defined
+  - [x] attempt to edit a team with no name. It isn't possible to add / edit teams any more.
+  - [x] attempt to edit a game where a team plays itself - not allowed
+  - [x] attempt to edit a game without the teams defined
+  - [x] want to be able to cancel editing a game
+  - [x] want to be able to cancel adding a game
+- [x] run axe / accessibility tools
+- [ ] make it easy via keyboard
+- [ ] google lighthouse
+  - will mostly have to do once live / on a production build I think
+  - should add a meta tag though
+  - and use href in the a tags, although there won't be anything to crawl anyway
+  - should not allow clicking on the route that you are on, and not have it as an a tag
 - [ ] maybe sort out history / routing if I can be bothered
 - [ ] do drag drop / touch reordering if possible. This might lead to a 4th page. Maybe "Tweak"
-- [ ] run axe / accessibility tools
-- [ ] make it easy via keyboard
 - [ ] add footer from green pages
-  - [ ] google lighthouse
 
 Sort dx. This is all optional and not sure I can be bothered
 
