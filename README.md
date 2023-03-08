@@ -32,13 +32,16 @@
   - [x] want to be able to cancel editing a game
   - [x] want to be able to cancel adding a game
 - [x] run axe / accessibility tools
-- [ ] make it easy via keyboard
-- [ ] google lighthouse
+- [-] make it easy via keyboard
+  - [x] buttons and form controls are all good
+  - [x] cant get to hyperlinks with keyboard, hopefully sorted when do routing
+- [-] google lighthouse
   - will mostly have to do once live / on a production build I think
-  - should add a meta tag though
-  - and use href in the a tags, although there won't be anything to crawl anyway
+  - [x] should add a meta tag though
+  - [x] and use href in the a tags, although there won't be anything to crawl anyway
   - should not allow clicking on the route that you are on, and not have it as an a tag
-- [ ] maybe sort out history / routing if I can be bothered
+- [x] maybe sort out history / routing if I can be bothered
+  - [ ] could go further on this, and store the model in the url, but don't think it is worthwhile
 - [ ] do drag drop / touch reordering if possible. This might lead to a 4th page. Maybe "Tweak"
 - [ ] add footer from green pages
 
@@ -52,7 +55,7 @@ Sort dx. This is all optional and not sure I can be bothered
 
 Release
 
-- [ ] create a build, could simply be just on netlify? Maybe something else is better though.
+- [ ] create a build, could simply be just on netlify? Maybe something else is better though. have elm review in build.
 - [ ] Release app to netlify or similar
 - [ ] Update read with some friendly text
 - [ ] Publicise on canoe polo facebook groups

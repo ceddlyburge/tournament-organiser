@@ -251,6 +251,7 @@ li {
   align-items: baseline;
   margin-left: 1em;
   margin-right: 1em;
+  column-gap: var(--s-5);
 }
 
 li::marker {

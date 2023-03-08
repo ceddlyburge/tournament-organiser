@@ -1,9 +1,10 @@
 port module Main exposing (Model, Msg(..), UiState(..), main)
 
 import Browser
+import Browser.Navigation
 import GameParser
 import Html exposing (Html, a, button, datalist, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
-import Html.Attributes exposing (class, default, disabled, id, list, placeholder, selected, title, value, width)
+import Html.Attributes exposing (class, disabled, href, id, list, placeholder, selected, title, value)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
 import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
@@ -11,6 +12,7 @@ import Parser
 import String
 import Svg
 import Svg.Attributes
+import Url
 
 
 
@@ -67,6 +69,7 @@ type alias Model =
     -- optimise
     , gameOrderMetrics : Maybe GameOrderMetrics
     , previousGameOrderMetrics : Maybe GameOrderMetrics
+    , key : Browser.Navigation.Key
     }
 
 
@@ -96,8 +99,8 @@ exampleGames =
     ]
 
 
-vanillaModel : Model
-vanillaModel =
+vanillaModel : Browser.Navigation.Key -> Model
+vanillaModel key =
     Model
         GamesView
         []
@@ -109,14 +112,18 @@ vanillaModel =
         ""
         Nothing
         Nothing
+        key
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( vanillaModel, Cmd.none )
+init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( vanillaModel key, Cmd.none )
 
 
 
+-- init : ( Model, Cmd Msg )
+-- init =
+--     ( vanillaModel, Cmd.none )
 ---- UPDATE ----
 
 
@@ -144,6 +151,9 @@ type Msg
       -- Copy / Paste
     | CopyOptimisedGames (List AnalysedGame)
     | PasteGames (List Game)
+      -- Routing
+    | UrlChanged Url.Url
+    | LinkClicked Browser.UrlRequest
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -305,6 +315,25 @@ update msg model =
             else
                 ( model, Cmd.none )
 
+        -- Routing
+        UrlChanged url ->
+            if url.fragment == Just "/teams" then
+                ( { model | uiState = TeamsView }, Cmd.none )
+
+            else if url.fragment == Just "/optimise" then
+                ( { model | uiState = OptimiseView }, Cmd.none )
+
+            else
+                ( { model | uiState = GamesView }, Cmd.none )
+
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Browser.Navigation.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Browser.Navigation.load href )
+
 
 clearOptimisationResults : Model -> Model
 clearOptimisationResults model =
@@ -334,42 +363,46 @@ setGames games model =
 -- could have a stack = class "stack" function and similar as well
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    div
-        [ class "body stack" ]
-        [ header
-            []
-            [ h1 [] [ text "Tournament Organiser" ]
-            , h2 [] [ text "Optimise Order of Games" ]
-            , nav
-                [ class "center" ]
-                -- sort out the spans with some flex or something
-                [ a
-                    [ onClick ShowGames ]
-                    [ text "Define Games" ]
-                , span [] [ text " - " ]
-                , if List.isEmpty model.games then
-                    span [] [ text "Team Options" ]
+    { title = "URL Interceptor"
+    , body =
+        [ div
+            [ class "body stack" ]
+            [ header
+                []
+                [ h1 [] [ text "Tournament Organiser" ]
+                , h2 [] [ text "Optimise Order of Games" ]
+                , nav
+                    [ class "center" ]
+                    -- sort out the spans with some flex or something
+                    [ a
+                        [ href "/" ]
+                        [ text "Define Games" ]
+                    , span [] [ text " - " ]
+                    , if List.isEmpty model.games then
+                        span [] [ text "Team Options" ]
 
-                  else
-                    a
-                        [ onClick ShowTeams, disabled (List.isEmpty model.games) ]
-                        [ text "Team Options" ]
-                , span [] [ text " - " ]
-                , if List.isEmpty model.games then
-                    span [] [ text "Optimise!" ]
+                      else
+                        a
+                            [ href "/#/teams", disabled (List.isEmpty model.games) ]
+                            [ text "Team Options" ]
+                    , span [] [ text " - " ]
+                    , if List.isEmpty model.games then
+                        span [] [ text "Optimise!" ]
 
-                  else
-                    a
-                        [ onClick ShowOptimise, disabled (List.isEmpty model.games) ]
-                        [ text "Optimise!" ]
+                      else
+                        a
+                            [ href "/#/optimise", disabled (List.isEmpty model.games) ]
+                            [ text "Optimise!" ]
+                    ]
                 ]
+            , main_
+                [ class "center stack" ]
+                (stateView model)
             ]
-        , main_
-            [ class "center stack" ]
-            (stateView model)
         ]
+    }
 
 
 stateView : Model -> List (Html Msg)
@@ -443,9 +476,6 @@ gameView game =
                 [ text game.awayTeam.name ]
             ]
         , editListItemButton (ShowEditGame game)
-
-        -- use some styling here instead of the separator
-        , span [] [ text "\u{00A0}" ]
         , deleteListItemButton (DeleteGame game)
         ]
 
@@ -754,9 +784,11 @@ editIcon =
 
 main : Program () Model Msg
 main =
-    Browser.element
+    Browser.application
         { view = view
-        , init = \_ -> init
+        , init = init
         , update = update
         , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
         }
