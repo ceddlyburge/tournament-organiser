@@ -32,18 +32,26 @@
   - [x] want to be able to cancel editing a game
   - [x] want to be able to cancel adding a game
 - [x] run axe / accessibility tools
-- [-] make it easy via keyboard
+- [x] make it easy via keyboard
   - [x] buttons and form controls are all good
   - [x] cant get to hyperlinks with keyboard, hopefully sorted when do routing
 - [-] google lighthouse
-  - will mostly have to do once live / on a production build I think
+  - [ ] will mostly have to do once live / on a production build I think
   - [x] should add a meta tag though
   - [x] and use href in the a tags, although there won't be anything to crawl anyway
   - should not allow clicking on the route that you are on, and not have it as an a tag
 - [x] maybe sort out history / routing if I can be bothered
-  - [ ] could go further on this, and store the model in the url, but don't think it is worthwhile
-- [ ] do drag drop / touch reordering if possible. This might lead to a 4th page. Maybe "Tweak"
-- [ ] add footer from green pages
+  - could go further on this, and store the model in the url, but don't think it is worthwhile
+- [x] do drag drop / touch reordering if possible. This might lead to a 4th page. Maybe "Tweak"
+  - [x] probably hide on mobile, being as it wont work. Mobile probably pretty unlikely anyway, as people will be copy pasting to excel
+  - [x] make copy work, or at least potentially work
+  - [x] update tweaks when gameordermetrics changes
+  - [x] update stats when tweaks change
+  - [x] shows stats on page
+  - [x] The team preferences are accommodated with 0-0% success
+  - [x] show some help text on page, can drag etc
+  - [x] make the nav text smaller, so it always fits on one line
+- [x] add footer from green pages
 
 Sort dx. This is all optional and not sure I can be bothered
 
@@ -56,6 +64,9 @@ Sort dx. This is all optional and not sure I can be bothered
 Release
 
 - [ ] create a build, could simply be just on netlify? Maybe something else is better though. have elm review in build.
-- [ ] Release app to netlify or similar
-- [ ] Update read with some friendly text
+- [ ] Release app to netlify or similar. maybe render
+- [ ] Update readme with some friendly text
 - [ ] Publicise on canoe polo facebook groups
+- [ ] See if the johnson trotter algorithm is wanted by anyone (or the depth first one I'm actually using)
+- [ ] See if can get touch working in dnd package
+- [ ] See if can get auto scroll working in dnd package

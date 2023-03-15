@@ -85,6 +85,7 @@ type alias AnalysedGame =
     { game : Game
     , homeTeamPlayingConsecutively : Bool
     , awayTeamPlayingConsecutively : Bool
+    , id : Int
     }
 
 
@@ -251,15 +252,16 @@ calculateGameOrderMetrics games =
 analyseGames : Array Game -> Array AnalysedGame
 analyseGames games =
     Array.indexedMap
-        (\index game -> analyseGame (Array.get (index - 1) games) game (Array.get (index + 1) games))
+        (\index game -> analyseGame (Array.get (index - 1) games) game (Array.get (index + 1) games) index)
         games
 
 
-analyseGame : Maybe Game -> Game -> Maybe Game -> AnalysedGame
-analyseGame previousGame game nextGame =
+analyseGame : Maybe Game -> Game -> Maybe Game -> Int -> AnalysedGame
+analyseGame previousGame game nextGame index =
     { game = game
     , homeTeamPlayingConsecutively = maybePlaying game.homeTeam previousGame || maybePlaying game.homeTeam nextGame
     , awayTeamPlayingConsecutively = maybePlaying game.awayTeam previousGame || maybePlaying game.awayTeam nextGame
+    , id = index
     }
 
 
@@ -353,6 +355,7 @@ calculateTournamentPreferenceScores games analysedTeams occurencesOfTeamsPlaying
 calculateTeamNumberOfGames : List Game -> AnalysedTeamFirstPass -> Int
 calculateTeamNumberOfGames games analysedTeamFirstPass =
     List.filter (\game -> playing analysedTeamFirstPass.team game) games |> List.length
+
 
 calculateTeamTournamentPreferenceScore : List Game -> Int -> AnalysedTeamFirstPass -> AnalysedTeam
 calculateTeamTournamentPreferenceScore games occurencesOfTeamsPlayingConsecutiveGames analysedTeamFirstPass =

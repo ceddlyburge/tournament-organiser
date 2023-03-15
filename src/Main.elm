@@ -2,14 +2,15 @@ port module Main exposing (Model, Msg(..), UiState(..), main)
 
 import Browser
 import Browser.Navigation
+import DnDList
 import GameParser
-import Html exposing (Html, a, button, datalist, div, h1, h2, header, input, li, main_, nav, option, p, select, span, text, ul)
+import Html exposing (Html, a, button, datalist, div, footer, h1, h2, header, input, li, main_, nav, option, p, select, span, strong, sup, text, ul)
 import Html.Attributes exposing (class, disabled, href, id, list, placeholder, selected, title, value)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 import Parser
-import String
+import String exposing (fromInt)
 import Svg
 import Svg.Attributes
 import Url
@@ -26,18 +27,39 @@ port paste : (String -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    paste
-        (\pastedString ->
-            case Parser.run GameParser.gamesParser pastedString of
-                Ok games ->
-                    -- todo - add games to model, and add any new teams we didn't already know about
-                    PasteGames games
+subscriptions model =
+    Sub.batch
+        [ paste
+            (\pastedString ->
+                case Parser.run GameParser.gamesParser pastedString of
+                    Ok games ->
+                        -- todo - add games to model, and add any new teams we didn't already know about
+                        PasteGames games
 
-                Err _ ->
-                    -- todo, probably show a message here
-                    PasteGames []
-        )
+                    Err _ ->
+                        -- todo, probably show a message here
+                        PasteGames []
+            )
+        , system.subscriptions model.dnd
+        ]
+
+
+
+---- Drag and drop ----
+
+
+config : DnDList.Config AnalysedGame
+config =
+    { beforeUpdate = \_ _ list -> list
+    , movement = DnDList.Vertical
+    , listen = DnDList.OnDrag
+    , operation = DnDList.Rotate
+    }
+
+
+system : DnDList.System AnalysedGame Msg
+system =
+    DnDList.create config DndMsg
 
 
 
@@ -50,27 +72,54 @@ type UiState
     | EditGameView
     | TeamsView
     | OptimiseView
+    | TweakView
 
 
 type alias Model =
-    { uiState : UiState
-    , teams : List Team
+    { key : Browser.Navigation.Key
+    , uiState : UiState
+
+    -- Games
     , games : List Game
 
-    -- add game
+    -- - add game
     , homeTeamToAdd : Team
     , awayTeamToAdd : Team
 
-    -- edit game
+    -- - edit game
     , gameToEdit : Game
     , homeTeamNameToEdit : String
     , awayTeamNameToEdit : String
 
+    -- teams
+    , teams : List Team
+
     -- optimise
     , gameOrderMetrics : Maybe GameOrderMetrics
     , previousGameOrderMetrics : Maybe GameOrderMetrics
-    , key : Browser.Navigation.Key
+
+    -- tweak
+    , dnd : DnDList.Model
+    , tweakedGameOrderMetrics : Maybe GameOrderMetrics
     }
+
+
+vanillaModel : Browser.Navigation.Key -> Model
+vanillaModel key =
+    Model
+        key
+        GamesView
+        []
+        vanillaTeam
+        vanillaTeam
+        vanillaGame
+        ""
+        ""
+        []
+        Nothing
+        Nothing
+        system.model
+        Nothing
 
 
 exampleGames : List Game
@@ -99,41 +148,22 @@ exampleGames =
     ]
 
 
-vanillaModel : Browser.Navigation.Key -> Model
-vanillaModel key =
-    Model
-        GamesView
-        []
-        []
-        vanillaTeam
-        vanillaTeam
-        vanillaGame
-        ""
-        ""
-        Nothing
-        Nothing
-        key
-
-
 init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init flags url key =
+init _ _ key =
     ( vanillaModel key, Cmd.none )
 
 
 
--- init : ( Model, Cmd Msg )
--- init =
---     ( vanillaModel, Cmd.none )
 ---- UPDATE ----
 
 
 type Msg
-    = ShowTeams
-      -- define games
-    | ShowGames
+    = -- define games
+      ShowGames
     | ShowAddGame
     | DeleteGame Game
     | AddExampleGames
+    | PasteGames (List Game)
       -- add game
     | SetHomeTeamNameToAdd String
     | SetAwayTeamNameToAdd String
@@ -148,9 +178,9 @@ type Msg
       -- Optimise
     | ShowOptimise
     | OptimiseGameOrder
-      -- Copy / Paste
-    | CopyOptimisedGames (List AnalysedGame)
-    | PasteGames (List Game)
+    | CopyAnalysedGames (List AnalysedGame)
+      -- Tweak
+    | DndMsg DnDList.Msg
       -- Routing
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
@@ -234,9 +264,6 @@ update msg model =
             )
 
         -- Teams
-        ShowTeams ->
-            ( { model | uiState = TeamsView }, Cmd.none )
-
         EditTournamentPreference teamToEdit tournamentPreference ->
             let
                 newTeam : Team
@@ -287,18 +314,23 @@ update msg model =
             let
                 games : List Game
                 games =
-                    Maybe.map (\gameOrderMetrics -> List.map .game gameOrderMetrics.analysedGames) model.gameOrderMetrics
+                    Maybe.map (\justGameOrderMetrics -> List.map .game justGameOrderMetrics.analysedGames) model.gameOrderMetrics
                         |> Maybe.withDefault model.games
+
+                gameOrderMetrics : GameOrderMetrics
+                gameOrderMetrics =
+                    optimiseAllPermutations games model.gameOrderMetrics
             in
             ( { model
                 | previousGameOrderMetrics = model.gameOrderMetrics
-                , gameOrderMetrics = Just (optimiseAllPermutations games model.gameOrderMetrics)
+                , gameOrderMetrics = Just gameOrderMetrics
+                , tweakedGameOrderMetrics = Just gameOrderMetrics
               }
             , Cmd.none
             )
 
         -- Copy / Paste
-        CopyOptimisedGames analysedGames ->
+        CopyAnalysedGames analysedGames ->
             ( model
             , copyAnalysedGames
                 (List.map
@@ -315,13 +347,29 @@ update msg model =
             else
                 ( model, Cmd.none )
 
+        -- Tweak
+        DndMsg dndMsg ->
+            let
+                ( dnd, updatedTweakedGames ) =
+                    system.update dndMsg model.dnd (tweakedGamesWithDefault model)
+            in
+            ( { model
+                | dnd = dnd
+                , tweakedGameOrderMetrics = Just (calculateGameOrderMetrics (List.map .game updatedTweakedGames))
+              }
+            , system.commands dnd
+            )
+
         -- Routing
         UrlChanged url ->
-            if url.fragment == Just "/teams" then
+            if url.fragment == Just "/teams" && not (List.isEmpty model.games) then
                 ( { model | uiState = TeamsView }, Cmd.none )
 
-            else if url.fragment == Just "/optimise" then
+            else if url.fragment == Just "/optimise" && not (List.isEmpty model.games) then
                 ( { model | uiState = OptimiseView }, Cmd.none )
+
+            else if url.fragment == Just "/tweak" && not (model.tweakedGameOrderMetrics == Nothing) then
+                ( { model | uiState = TweakView }, Cmd.none )
 
             else
                 ( { model | uiState = GamesView }, Cmd.none )
@@ -333,6 +381,11 @@ update msg model =
 
                 Browser.External href ->
                     ( model, Browser.Navigation.load href )
+
+
+tweakedGamesWithDefault : Model -> List AnalysedGame
+tweakedGamesWithDefault model =
+    Maybe.map .analysedGames model.tweakedGameOrderMetrics |> Maybe.withDefault []
 
 
 clearOptimisationResults : Model -> Model
@@ -359,8 +412,6 @@ setGames games model =
 
 
 ---- VIEW ----
--- maybe put class center in to css file if its ubiquitous
--- could have a stack = class "stack" function and similar as well
 
 
 view : Model -> Browser.Document Msg
@@ -368,7 +419,7 @@ view model =
     { title = "URL Interceptor"
     , body =
         [ div
-            [ class "body stack" ]
+            [ class "body stack stackSplitAfter2" ]
             [ header
                 []
                 [ h1 [] [ text "Tournament Organiser" ]
@@ -377,29 +428,98 @@ view model =
                     [ class "center" ]
                     -- sort out the spans with some flex or something
                     [ a
-                        [ href "/" ]
-                        [ text "Define Games" ]
+                        [ href "/"
+                        , disabled (model.uiState == GamesView)
+                        ]
+                        [ text "Games" ]
                     , span [] [ text " - " ]
                     , if List.isEmpty model.games then
-                        span [] [ text "Team Options" ]
+                        span [] [ text "Teams" ]
 
                       else
                         a
-                            [ href "/#/teams", disabled (List.isEmpty model.games) ]
-                            [ text "Team Options" ]
+                            [ href "/#/teams"
+                            , disabled (List.isEmpty model.games || model.uiState == TeamsView)
+                            ]
+                            [ text "Teams" ]
                     , span [] [ text " - " ]
                     , if List.isEmpty model.games then
-                        span [] [ text "Optimise!" ]
+                        span [] [ text "Optimise" ]
 
                       else
                         a
-                            [ href "/#/optimise", disabled (List.isEmpty model.games) ]
-                            [ text "Optimise!" ]
+                            [ href "/#/optimise"
+                            , disabled (List.isEmpty model.games || model.uiState == TeamsView)
+                            ]
+                            [ text "Optimise" ]
+                    , span [] [ text " - " ]
+                    , if model.gameOrderMetrics == Nothing then
+                        span [] [ text "Tweak" ]
+
+                      else
+                        let
+                            tweakDisabled =
+                                case model.gameOrderMetrics of
+                                    Nothing ->
+                                        True
+
+                                    Just gameOrderMetrics ->
+                                        List.isEmpty gameOrderMetrics.analysedGames
+                        in
+                        a
+                            [ href "/#/tweak"
+                            , disabled (tweakDisabled && model.uiState /= TweakView)
+                            ]
+                            [ text "Tweak" ]
                     ]
                 ]
             , main_
                 [ class "center stack" ]
                 (stateView model)
+            , footer
+                []
+                [ p
+                    []
+                    [ span
+                        []
+                        [ text "This page was "
+                        , strong
+                            []
+                            [ text "just "
+                            , span
+                                [ id "transferSizeKb" ]
+                                []
+                            , text "Kb"
+                            ]
+                        , text " (internet average ~3000kb) and loaded in "
+                        , strong
+                            []
+                            [ text "just "
+                            , span
+                                [ id "loadTimeS" ]
+                                []
+                            , text " seconds"
+                            ]
+                        , text ". Very approximately, this equates to "
+                        , strong
+                            []
+                            [ text "just "
+                            , span
+                                [ id "co2g" ]
+                                []
+                            ]
+                        , text " grams of CO"
+                        , sup
+                            []
+                            [ text "2" ]
+                        , text " equivalent"
+                        , text ". "
+                        , a
+                            [ href "http://green-pages.eco/page-statistics" ]
+                            [ text "Read more ..." ]
+                        ]
+                    ]
+                ]
             ]
         ]
     }
@@ -422,6 +542,9 @@ stateView model =
 
         OptimiseView ->
             optimiseView model
+
+        TweakView ->
+            tweakView model
 
 
 gamesView : Model -> List (Html Msg)
@@ -636,7 +759,7 @@ optimiseView model =
         ]
         [ text "Optimise" ]
         :: button
-            [ onClick (CopyOptimisedGames analysedGames)
+            [ onClick (CopyAnalysedGames analysedGames)
             , class "primary center"
             , disabled copyDisabled
             ]
@@ -693,11 +816,17 @@ preferenceExplanation gameOrderMetrics =
 
         explanation : String
         explanation =
-            "The team preferences are accommodated with "
-                ++ lowestTournamentPreferenceScore
-                ++ "-"
-                ++ highestTournamentPreferenceScore
-                ++ "% success"
+            if lowestTournamentPreferenceScore == highestTournamentPreferenceScore then
+                "The team preferences are accommodated with "
+                    ++ lowestTournamentPreferenceScore
+                    ++ "% success"
+
+            else
+                "The team preferences are accommodated with "
+                    ++ lowestTournamentPreferenceScore
+                    ++ "-"
+                    ++ highestTournamentPreferenceScore
+                    ++ "% success"
     in
     p [] [ text explanation ]
 
@@ -706,23 +835,111 @@ optimisedGamesView : List AnalysedGame -> Html Msg
 optimisedGamesView analysedGames =
     ul
         [ class "stack stack-small" ]
-        (List.map optimisedGameView analysedGames)
+        (List.map analysedGameListItem analysedGames)
 
 
-optimisedGameView : AnalysedGame -> Html Msg
-optimisedGameView game =
+analysedGameListItem : AnalysedGame -> Html Msg
+analysedGameListItem game =
     li
         [ class "center" ]
-        [ span
-            (consecutiveGameClass game.homeTeamPlayingConsecutively)
-            [ text game.game.homeTeam.name ]
-        , span
-            []
-            [ text "\u{00A0}-\u{00A0}" ]
-        , span
-            (consecutiveGameClass game.awayTeamPlayingConsecutively)
-            [ text game.game.awayTeam.name ]
+        (analysedGameView game)
+
+
+analysedGameView : AnalysedGame -> List (Html Msg)
+analysedGameView game =
+    [ span
+        (consecutiveGameClass game.homeTeamPlayingConsecutively)
+        [ text game.game.homeTeam.name ]
+    , span
+        []
+        [ text "\u{00A0}-\u{00A0}" ]
+    , span
+        (consecutiveGameClass game.awayTeamPlayingConsecutively)
+        [ text game.game.awayTeam.name ]
+    ]
+
+
+tweakView : Model -> List (Html Msg)
+tweakView model =
+    let
+        tweakedGames =
+            tweakedGamesWithDefault model
+    in
+    [ button
+        [ onClick (CopyAnalysedGames tweakedGames)
+        , class "primary center"
         ]
+        [ text "Copy to clipboard" ]
+    , p
+        []
+        [ text "Drag the games to reorder manually (currently only works with pointing devices, and not touch screens)" ]
+
+    -- it would be good to enforce that tweakedGameOrderMetrics exists using the type system,
+    -- by putting it on the TweakView custom type, but fiddly to achieve with the Dnd package,
+    -- this is easier and less code.
+    , Maybe.map preferenceExplanation model.tweakedGameOrderMetrics |> Maybe.withDefault (text "")
+    , div
+        [ class "stack stack-small drag-drop" ]
+        (List.indexedMap (tweakedGameView model.dnd) tweakedGames)
+    , ghostView model.dnd tweakedGames
+    ]
+
+
+tweakedGameView : DnDList.Model -> Int -> AnalysedGame -> Html.Html Msg
+tweakedGameView dnd index game =
+    let
+        gameId : String
+        gameId =
+            "tweaked-game-" ++ fromInt game.id
+    in
+    case system.info dnd of
+        Just { dragIndex } ->
+            if dragIndex /= index then
+                div
+                    (id gameId
+                        :: system.dropEvents index gameId
+                    )
+                    [ span
+                        []
+                        (analysedGameView game)
+                    ]
+
+            else
+                div
+                    [ id gameId, class "drag-underlay" ]
+                    [ span
+                        []
+                        (analysedGameView game)
+                    ]
+
+        Nothing ->
+            div
+                (id gameId :: system.dragEvents index gameId)
+                [ span
+                    []
+                    (analysedGameView game)
+                ]
+
+
+ghostView : DnDList.Model -> List AnalysedGame -> Html.Html Msg
+ghostView dnd games =
+    let
+        maybeDragGame : Maybe AnalysedGame
+        maybeDragGame =
+            system.info dnd
+                |> Maybe.andThen (\{ dragIndex } -> List.Extra.getAt dragIndex games)
+    in
+    case maybeDragGame of
+        Just game ->
+            div
+                (class "drag-ghost" :: system.ghostStyles dnd)
+                [ span
+                    []
+                    (analysedGameView game)
+                ]
+
+        Nothing ->
+            text ""
 
 
 consecutiveGameClass : Bool -> List (Html.Attribute Msg)

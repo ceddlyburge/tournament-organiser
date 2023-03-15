@@ -24,5 +24,28 @@
     </noscript>
     <div id="root"></div>
 </body>
+<script>
+    // Show page stats
+    const updatePageSize = () => {
+        const transferSizeB =
+            performance
+                .getEntriesByType("resource")
+                .map((x) => x.transferSize)
+                .reduce((a, b) => (a + b), 0);
 
+        document.getElementById('transferSizeKb').innerText = (transferSizeB / 1000).toFixed(0);
+
+        const co2g = (transferSizeB / 1024 / 1024 / 1024) * 0.81 * 442;
+        document.getElementById('co2g').innerText = co2g.toFixed(4);
+    }
+
+    const updatePageLoadTime = () => {
+        const loadTimeMs = performance.timing?.domComplete - performance.timing?.navigationStart
+
+        document.getElementById('loadTimeS').innerText = (loadTimeMs / 1000).toFixed(1);
+    };
+
+    window.addEventListener('load', updatePageSize);
+    window.addEventListener('load', updatePageLoadTime);
+</script>
 </html>
