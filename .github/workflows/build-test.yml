@@ -66,13 +66,4 @@ jobs:
       # Finally, run whatever you want. For example:
 
       - name: build
-        run: npm run build
-
-      - name: elm-test
-        run: npx elm-test
-
-      - name: elm-review
-        run: npx elm-review
-
-      - name: elm-format
-        run: npx elm-format --validate .
+        run: npm run check-and-build
