@@ -3,6 +3,7 @@ module Optimisation.Permutations exposing (permutations, permutations2)
 import List.Extra
 
 
+
 {-
    [1, 2, 3]
 
@@ -92,7 +93,6 @@ permutations2Internal limit curtail combinations currentPermutation ( iterationC
                             permutations2Internal limit curtail ys xs ( depthFirstIterationCount + 1, depthFirstFinishedPermutations )
 
 
-
 permutations : (a -> a -> Bool) -> List a -> List (List a)
 permutations curtail xs =
     permutationsInternal curtail Nothing xs
@@ -106,7 +106,7 @@ permutationsInternal curtail previousValue xs_ =
 
         xs ->
             let
-                f : (a, List a) -> List (List a)
+                f : ( a, List a ) -> List (List a)
                 f ( y, ys ) =
                     if maybeCurtail curtail previousValue y then
                         [ [] ]

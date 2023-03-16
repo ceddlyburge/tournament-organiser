@@ -2,8 +2,8 @@ module Permutations2Tests exposing (testGetMobile, testNext, testNextPermutation
 
 import Array
 import Expect
-import Optimisation.Permutations2 exposing (Element, left, right, first, next, getState, getPermutation, calculateNextPermutation, Step(..), calculateMobile)
-import Test exposing (test, describe, Test)
+import Optimisation.Permutations2 exposing (Element, Step(..), calculateMobile, calculateNextPermutation, first, getPermutation, getState, left, next, right)
+import Test exposing (Test, describe, test)
 
 
 iteration1 : Array.Array Element

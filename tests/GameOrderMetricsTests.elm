@@ -2,7 +2,7 @@ module GameOrderMetricsTests exposing (all)
 
 import Expect
 import List
-import Optimisation.GameOrderMetrics exposing (calculateGameOrderMetrics, Game, AnalysedGame, calculateTeamTournamentPreferenceScore, AnalysedTeamFirstPass, AnalysedTeam, Team, TournamentPreference(..), analyseTeams, optimiseAllPermutations)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, Team, TournamentPreference(..), analyseTeams, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, optimiseAllPermutations)
 import Test exposing (Test, describe, test)
 
 
@@ -17,8 +17,8 @@ all =
                     ]
                     |> .analysedGames
                     |> Expect.equal
-                        [ AnalysedGame (Game (team "Castle") (team "Battersea")) True False
-                        , AnalysedGame (Game (team "Avon") (team "Castle")) False True
+                        [ AnalysedGame (Game (team "Castle") (team "Battersea")) True False 0
+                        , AnalysedGame (Game (team "Avon") (team "Castle")) False True 1
                         ]
         , test "Middle Teams Should Be Marked As Playing Consecutively" <|
             \_ ->
@@ -29,9 +29,9 @@ all =
                     ]
                     |> .analysedGames
                     |> Expect.equal
-                        [ AnalysedGame (Game (team "Castle") (team "Avon")) True False
-                        , AnalysedGame (Game (team "Battersea") (team "Castle")) False True
-                        , AnalysedGame (Game (team "Avon") (team "Castle")) False True
+                        [ AnalysedGame (Game (team "Castle") (team "Avon")) True False 0
+                        , AnalysedGame (Game (team "Battersea") (team "Castle")) False True 1
+                        , AnalysedGame (Game (team "Avon") (team "Castle")) False True 2
                         ]
         , test "One team playing consecutively once" <|
             \_ ->

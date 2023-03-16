@@ -1,7 +1,7 @@
 module GameParser exposing (gameParser, gamesParser)
 
 import Optimisation.GameOrderMetrics exposing (Game, Team, TournamentPreference(..))
-import Parser exposing (Parser, (|=), (|.))
+import Parser exposing ((|.), (|=), Parser)
 
 
 gamesParser : Parser (List Game)

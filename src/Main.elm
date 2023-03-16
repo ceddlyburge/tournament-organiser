@@ -175,8 +175,6 @@ type Msg
     | EditGame
       -- edit team
     | EditTournamentPreference Team TournamentPreference
-      -- Optimise
-    | ShowOptimise
     | OptimiseGameOrder
     | CopyAnalysedGames (List AnalysedGame)
       -- Tweak
@@ -240,10 +238,12 @@ update msg model =
                 gameToEdit =
                     model.gameToEdit
 
+                newHomeTeam : Team
                 newHomeTeam =
                     List.Extra.find (\t -> t.name == model.homeTeamNameToEdit) model.teams
                         |> Maybe.withDefault { vanillaTeam | name = model.homeTeamNameToEdit }
 
+                newAwayTeam : Team
                 newAwayTeam =
                     List.Extra.find (\t -> t.name == model.awayTeamNameToEdit) model.teams
                         |> Maybe.withDefault { vanillaTeam | name = model.awayTeamNameToEdit }
@@ -305,10 +305,6 @@ update msg model =
             ( setGames editedGames { model | teams = editedTeams }
             , Cmd.none
             )
-
-        -- Optimise
-        ShowOptimise ->
-            ( { model | uiState = OptimiseView }, Cmd.none )
 
         OptimiseGameOrder ->
             let
@@ -439,7 +435,7 @@ view model =
                       else
                         a
                             [ href "/#/teams"
-                            , disabled (List.isEmpty model.games || model.uiState == TeamsView)
+                            , disabled (model.uiState == TeamsView)
                             ]
                             [ text "Teams" ]
                     , span [] [ text " - " ]
@@ -449,7 +445,7 @@ view model =
                       else
                         a
                             [ href "/#/optimise"
-                            , disabled (List.isEmpty model.games || model.uiState == TeamsView)
+                            , disabled (model.uiState == TeamsView)
                             ]
                             [ text "Optimise" ]
                     , span [] [ text " - " ]
@@ -458,6 +454,7 @@ view model =
 
                       else
                         let
+                            tweakDisabled : Bool
                             tweakDisabled =
                                 case model.gameOrderMetrics of
                                     Nothing ->
@@ -605,10 +602,6 @@ gameView game =
 
 addGameView : Model -> List (Html Msg)
 addGameView model =
-    let
-        addGameDisabled =
-            model.homeTeamToAdd.name == "" || model.awayTeamToAdd.name == "" || model.homeTeamToAdd.name == model.awayTeamToAdd.name
-    in
     [ teamsDataList model
     , div
         [ class "teamForm" ]
@@ -629,7 +622,7 @@ addGameView model =
             []
         ]
     , button
-        [ disabled addGameDisabled
+        [ disabled (model.homeTeamToAdd.name == "" || model.awayTeamToAdd.name == "" || model.homeTeamToAdd.name == model.awayTeamToAdd.name)
         , onClick AddGame
         , class "primary center"
         ]
@@ -644,10 +637,6 @@ addGameView model =
 
 editGameView : Model -> List (Html Msg)
 editGameView model =
-    let
-        editGameDisabled =
-            model.homeTeamNameToEdit == "" || model.awayTeamNameToEdit == "" || model.homeTeamNameToEdit == model.awayTeamNameToEdit
-    in
     [ teamsDataList model
     , div
         [ class "teamForm" ]
@@ -670,7 +659,7 @@ editGameView model =
             []
         ]
     , button
-        [ disabled editGameDisabled
+        [ disabled (model.homeTeamNameToEdit == "" || model.awayTeamNameToEdit == "" || model.homeTeamNameToEdit == model.awayTeamNameToEdit)
         , onClick EditGame
         , class "primary center"
         ]
@@ -862,6 +851,7 @@ analysedGameView game =
 tweakView : Model -> List (Html Msg)
 tweakView model =
     let
+        tweakedGames : List AnalysedGame
         tweakedGames =
             tweakedGamesWithDefault model
     in

@@ -2,7 +2,7 @@ module PermutationsTests exposing (foldPermutationsTest, permutationsTest)
 
 import Expect
 import Optimisation.Permutations exposing (permutations, permutations2)
-import Test exposing (test, describe, Test)
+import Test exposing (Test, describe, test)
 
 
 permutationsTest : Test
