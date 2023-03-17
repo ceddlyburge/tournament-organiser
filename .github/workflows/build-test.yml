@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           # Choose your Node.js version here:
-          node-version: 18.x
+          node-version: 14.x
 
       # Re-use node_modules between runs until package.json or package-lock.json changes.
       - name: Cache node_modules
