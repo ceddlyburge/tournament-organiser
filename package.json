@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "format": "elm-format --validate .",
-    "review": "elm-review --compiler ./node_modules/elm/bin/elm",
+    "review": "npx elm-review --compiler ./node_modules/elm/bin/elm",
     "test": "elm-app test",
     "build": "elm-app build",
     "check-and-build": "npm run format && npm run review && npm run test && npm run build"
