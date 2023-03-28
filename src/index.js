@@ -6,7 +6,10 @@ const main = Elm.Main.init({
 });
 
 main.ports.copyAnalysedGames.subscribe((text) => {
-  navigator?.clipboard?.writeText(text);
+  navigator?.clipboard
+    ?.writeText(text)
+    ?.then(() => alert("Copied to clipboard"))
+    ?.catch(() => "Failed to copy to clipboard, please copy manually");
 });
 
 window.addEventListener("paste", (event) => {
