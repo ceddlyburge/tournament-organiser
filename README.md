@@ -55,7 +55,9 @@
 - [x] add footer from green pages
 - [x] disable games link when on games page
 - [x] add favicon
-- [ ] add some explanation text to teams page
+- [x] add some explanation text to teams page
+- [ ] save to local storage
+- [ ] This page was just 0Kb (internet average ~3000kb) and loaded in just 0.8 seconds. Very approximately, this equates to just 0.0000 grams of CO2 equivalent. (when refreshing page, prob cos the service worker does it all)
 
 Sort dx. This is all optional and not sure I can be bothered
 

@@ -429,27 +429,19 @@ view model =
                       else
                         a [ href "/" ] [ text "Games" ]
                     , span [] [ text " - " ]
-                    , if List.isEmpty model.games then
+                    , if List.isEmpty model.games || model.uiState == TeamsView then
                         span [] [ text "Teams" ]
 
                       else
-                        a
-                            [ href "/#/teams"
-                            , disabled (model.uiState == TeamsView)
-                            ]
-                            [ text "Teams" ]
+                        a [ href "/#/teams" ] [ text "Teams" ]
                     , span [] [ text " - " ]
-                    , if List.isEmpty model.games then
+                    , if List.isEmpty model.games || model.uiState == OptimiseView then
                         span [] [ text "Optimise" ]
 
                       else
-                        a
-                            [ href "/#/optimise"
-                            , disabled (model.uiState == TeamsView)
-                            ]
-                            [ text "Optimise" ]
+                        a [ href "/#/optimise" ] [ text "Optimise" ]
                     , span [] [ text " - " ]
-                    , if model.gameOrderMetrics == Nothing then
+                    , if model.gameOrderMetrics == Nothing || model.uiState == TweakView then
                         span [] [ text "Tweak" ]
 
                       else
@@ -750,7 +742,7 @@ optimiseView model =
         [ text "Optimise" ]
         :: button
             [ onClick (CopyAnalysedGames analysedGames)
-            , class "primary center"
+            , class "secondary center"
             , disabled copyDisabled
             ]
             [ text "Copy to clipboard" ]
