@@ -1,51 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="Optimise the order of games in a tournament, so that teams are happy and nobody plays back to back games">
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico">
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="Optimise the order of games in a tournament, so that teams are happy and nobody plays back to back games">
-    <!--
-      manifest.json provides metadata used when your web app is added to the
-      homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico">
+        <link rel="stylesheet" href="%PUBLIC_URL%/root.css">
 
-    <link rel="stylesheet" href="%PUBLIC_URL%/root.css">
+        <title>Tournament organiser</title>
+    </head>
 
-    <title>Elm App</title>
-</head>
+    <body>
+        <noscript>
+            You need to enable JavaScript to run this app.
+        </noscript>
+        <div id="root"></div>
+    </body>
+    <script>
+        // Show page stats
+        const updatePageSize = () => {
+            const transferSizeB =
+                performance
+                    .getEntriesByType("resource")
+                    .map((x) => x.transferSize)
+                    .reduce((a, b) => (a + b), 0);
 
-<body>
-    <noscript>
-        You need to enable JavaScript to run this app.
-    </noscript>
-    <div id="root"></div>
-</body>
-<script>
-    // Show page stats
-    const updatePageSize = () => {
-        const transferSizeB =
-            performance
-                .getEntriesByType("resource")
-                .map((x) => x.transferSize)
-                .reduce((a, b) => (a + b), 0);
+            document.getElementById('transferSizeKb').innerText = (transferSizeB / 1000).toFixed(0);
 
-        document.getElementById('transferSizeKb').innerText = (transferSizeB / 1000).toFixed(0);
+            const co2g = (transferSizeB / 1024 / 1024 / 1024) * 0.81 * 442;
+            document.getElementById('co2g').innerText = co2g.toFixed(4);
+        }
 
-        const co2g = (transferSizeB / 1024 / 1024 / 1024) * 0.81 * 442;
-        document.getElementById('co2g').innerText = co2g.toFixed(4);
-    }
+        const updatePageLoadTime = () => {
+            const loadTimeMs = performance.timing?.domComplete - performance.timing?.navigationStart
 
-    const updatePageLoadTime = () => {
-        const loadTimeMs = performance.timing?.domComplete - performance.timing?.navigationStart
+            document.getElementById('loadTimeS').innerText = (loadTimeMs / 1000).toFixed(1);
+        };
 
-        document.getElementById('loadTimeS').innerText = (loadTimeMs / 1000).toFixed(1);
-    };
-
-    window.addEventListener('load', updatePageSize);
-    window.addEventListener('load', updatePageLoadTime);
-</script>
+        window.addEventListener('load', updatePageSize);
+        window.addEventListener('load', updatePageLoadTime);
+    </script>
 </html>
