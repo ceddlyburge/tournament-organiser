@@ -53,8 +53,8 @@
   - [x] show some help text on page, can drag etc
   - [x] make the nav text smaller, so it always fits on one line
 - [x] add footer from green pages
-- [ ] disable games link when on games page
-- [ ] add favicon
+- [x] disable games link when on games page
+- [x] add favicon
 - [ ] add some explanation text to teams page
 
 Sort dx. This is all optional and not sure I can be bothered
