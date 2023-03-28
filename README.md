@@ -19,8 +19,8 @@
 - [x] When adding a game, allow entry of a new team (text edit), as well as choosing an existing team
 - [x] min width of page
 - [-] add a copy option to the results page
-  - [ ] show a message box when works, and when it doesn't
-  - [ ] it isn't working on live. Navigator.clipboard is undefined
+  - [x] show a message box when works, and when it doesn't
+  - [x] it isn't working on live. Navigator.clipboard is undefined
 - [x] anaylse problem edge cases
   - [x] copy paste with more than two columns. This works ok, it just doesn't work. Probably a better message would be good. Excel might has 'vs' and suchlike.
   - [x] attempt to add / edit such that there are identical teams - not allowed. It isn't possible to add / edit teams any more.

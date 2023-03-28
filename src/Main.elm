@@ -423,11 +423,11 @@ view model =
                 , nav
                     [ class "center" ]
                     -- sort out the spans with some flex or something
-                    [ a
-                        [ href "/"
-                        , disabled (model.uiState == GamesView)
-                        ]
-                        [ text "Games" ]
+                    [ if model.uiState == GamesView then
+                        span [] [ text "Games" ]
+
+                      else
+                        a [ href "/" ] [ text "Games" ]
                     , span [] [ text " - " ]
                     , if List.isEmpty model.games then
                         span [] [ text "Teams" ]
