@@ -56,6 +56,8 @@
 - [x] disable games link when on games page
 - [x] add favicon
 - [x] add some explanation text to teams page
+- [x] style tweak and optimise view to have dash in the middle
+- [ ] maybe make the anchor spans grey or something when they are unavailable, and different when they are on the current page
 - [ ] save to local storage
 - [ ] This page was just 0Kb (internet average ~3000kb) and loaded in just 0.8 seconds. Very approximately, this equates to just 0.0000 grams of CO2 equivalent. (when refreshing page, prob cos the service worker does it all)
 

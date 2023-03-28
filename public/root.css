@@ -214,6 +214,21 @@ li button {
   color: red;
 }
 
+.game {
+  display: flex;
+}
+
+.homeTeam {
+  flex-grow: 1;
+  flex-basis: 0;
+  text-align: right;
+  width:
+}
+
+.awayTeam {
+  flex-basis: 0;
+  flex-grow: 1
+}
 /* .atLeastOneGameToRecover {
   color: green; 
 } */
@@ -262,8 +277,6 @@ li::marker {
 .drag-drop div, .drag-ghost {
   background-color: var(--side-bar-bg-color);
   border-radius: var(--s-5);
-  display: flex;
-  justify-content: center;
 }
 
 .drag-ghost {

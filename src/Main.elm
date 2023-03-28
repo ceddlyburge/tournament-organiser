@@ -823,20 +823,24 @@ optimisedGamesView analysedGames =
 analysedGameListItem : AnalysedGame -> Html Msg
 analysedGameListItem game =
     li
-        [ class "center" ]
+        [ class "game" ]
         (analysedGameView game)
 
 
 analysedGameView : AnalysedGame -> List (Html Msg)
 analysedGameView game =
     [ span
-        (consecutiveGameClass game.homeTeamPlayingConsecutively)
+        [ class "homeTeam"
+        , consecutiveGameClass game.homeTeamPlayingConsecutively
+        ]
         [ text game.game.homeTeam.name ]
     , span
         []
         [ text "\u{00A0}-\u{00A0}" ]
     , span
-        (consecutiveGameClass game.awayTeamPlayingConsecutively)
+        [ class "awayTeam"
+        , consecutiveGameClass game.awayTeamPlayingConsecutively
+        ]
         [ text game.game.awayTeam.name ]
     ]
 
@@ -883,7 +887,7 @@ tweakedGameView dnd index game =
                         :: system.dropEvents index gameId
                     )
                     [ span
-                        []
+                        [ class "game" ]
                         (analysedGameView game)
                     ]
 
@@ -891,7 +895,7 @@ tweakedGameView dnd index game =
                 div
                     [ id gameId, class "drag-underlay" ]
                     [ span
-                        []
+                        [ class "game" ]
                         (analysedGameView game)
                     ]
 
@@ -899,7 +903,7 @@ tweakedGameView dnd index game =
             div
                 (id gameId :: system.dragEvents index gameId)
                 [ span
-                    []
+                    [ class "game" ]
                     (analysedGameView game)
                 ]
 
@@ -917,7 +921,7 @@ ghostView dnd games =
             div
                 (class "drag-ghost" :: system.ghostStyles dnd)
                 [ span
-                    []
+                    [ class "game" ]
                     (analysedGameView game)
                 ]
 
@@ -925,13 +929,13 @@ ghostView dnd games =
             text ""
 
 
-consecutiveGameClass : Bool -> List (Html.Attribute Msg)
+consecutiveGameClass : Bool -> Html.Attribute Msg
 consecutiveGameClass playingConsecutiveley =
     if playingConsecutiveley then
-        [ class "playingConsecutively" ]
+        class "playingConsecutively"
 
     else
-        [ class "atLeastOneGameToRecover" ]
+        class "atLeastOneGameToRecover"
 
 
 deleteListItemButton : msg -> Html msg
