@@ -681,7 +681,8 @@ teamsDataList model =
 
 teamsView : Model -> List (Html Msg)
 teamsView model =
-    [ ul
+    [ p [] [ text "Choose team preferences here. The optimiser will always try to make sure teams don't play consecutively" ]
+    , ul
         [ class "stack stack-small" ]
         (List.map teamView model.teams)
     ]
