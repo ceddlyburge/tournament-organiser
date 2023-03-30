@@ -1,6 +1,7 @@
 import { Elm } from "./Main.elm";
 import * as serviceWorker from "./serviceWorker";
 
+// read from local storage here and pass in to app
 const main = Elm.Main.init({
   node: document.getElementById("root"),
 });
@@ -10,6 +11,10 @@ main.ports.copyAnalysedGames.subscribe((text) => {
     ?.writeText(text)
     ?.then(() => alert("Copied to clipboard"))
     ?.catch(() => "Failed to copy to clipboard, please copy manually");
+});
+
+main.ports.saveToLocalStorage.subscribe((modelJson) => {
+  window.localStorage?.setItem("model", modelJson);
 });
 
 window.addEventListener("paste", (event) => {

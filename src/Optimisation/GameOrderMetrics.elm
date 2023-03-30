@@ -1,9 +1,11 @@
 -- todo: expose a bit less, although tests probably still want some things to be exposed.
 
 
-module Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, GameOrderMetrics, IndexedTeam, Team, TournamentPreference(..), analyseTeams, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+module Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, GameOrderMetrics, IndexedTeam, Team, TournamentPreference(..), analyseTeams, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 
 import Array exposing (Array)
+import Json.Decode
+import Json.Encode
 import List.Extra
 import Optimisation.Permutations exposing (permutations2)
 
@@ -13,6 +15,29 @@ type TournamentPreference
     | FinishEarly
     | TwoGamesRest
     | NoPreference
+
+
+encodeTournamentPreference : TournamentPreference -> Json.Encode.Value
+encodeTournamentPreference tournamentPreference =
+    tournamentPreferenceToString tournamentPreference
+        |> Json.Encode.string
+
+
+decodeTournamentPreference : Json.Decode.Decoder TournamentPreference
+decodeTournamentPreference =
+    -- seems like there must be a better way to do this ...
+    Json.Decode.string
+        |> Json.Decode.map
+            stringToTournamentPreference
+        |> Json.Decode.andThen
+            (\m ->
+                case m of
+                    Just tournamentPreference ->
+                        Json.Decode.succeed tournamentPreference
+
+                    Nothing ->
+                        Json.Decode.fail ""
+            )
 
 
 tournamentPreferenceToString : TournamentPreference -> String
@@ -29,6 +54,25 @@ tournamentPreferenceToString tournamentPreference =
 
         NoPreference ->
             "No preference"
+
+
+stringToTournamentPreference : String -> Maybe TournamentPreference
+stringToTournamentPreference tournamentPreferenceString =
+    case tournamentPreferenceString of
+        "Start late" ->
+            Just StartLate
+
+        "Finish early" ->
+            Just FinishEarly
+
+        "Two games rest" ->
+            Just TwoGamesRest
+
+        "No preference" ->
+            Just NoPreference
+
+        _ ->
+            Nothing
 
 
 tournamentPreferenceFromString : String -> TournamentPreference
@@ -53,6 +97,21 @@ type alias Team =
     }
 
 
+encodeTeam : Team -> Json.Encode.Value
+encodeTeam team =
+    Json.Encode.object
+        [ ( "name", Json.Encode.string team.name )
+        , ( "tournamentPreference", encodeTournamentPreference team.tournamentPreference )
+        ]
+
+
+decodeTeam : Json.Decode.Decoder Team
+decodeTeam =
+    Json.Decode.map2 Team
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.field "tournamentPreference" decodeTournamentPreference)
+
+
 vanillaTeam : Team
 vanillaTeam =
     Team "" TwoGamesRest
@@ -68,6 +127,29 @@ type alias GameOrderMetrics =
     }
 
 
+encodeGameOrderMetrics : GameOrderMetrics -> Json.Encode.Value
+encodeGameOrderMetrics gameOrderMetrics =
+    Json.Encode.object
+        [ ( "analysedGames", Json.Encode.list encodeAnalysedGame gameOrderMetrics.analysedGames )
+        , ( "analysedTeams", Json.Encode.list encodeAnalysedTeam gameOrderMetrics.analysedTeams )
+        , ( "occurencesOfTeamsPlayingConsecutiveGames", Json.Encode.int gameOrderMetrics.occurencesOfTeamsPlayingConsecutiveGames )
+        , ( "lowestTournamentPreferenceScore", Json.Encode.float gameOrderMetrics.lowestTournamentPreferenceScore )
+        , ( "meanTournamentPreferenceScore", Json.Encode.float gameOrderMetrics.meanTournamentPreferenceScore )
+        , ( "highestTournamentPreferenceScore", Json.Encode.float gameOrderMetrics.highestTournamentPreferenceScore )
+        ]
+
+
+decodeGameOrderMetrics : Json.Decode.Decoder GameOrderMetrics
+decodeGameOrderMetrics =
+    Json.Decode.map6 GameOrderMetrics
+        (Json.Decode.field "analysedGames" (Json.Decode.list decodeAnalysedGame))
+        (Json.Decode.field "analysedTeams" (Json.Decode.list decodeAnalysedTeam))
+        (Json.Decode.field "occurencesOfTeamsPlayingConsecutiveGames" Json.Decode.int)
+        (Json.Decode.field "lowestTournamentPreferenceScore" Json.Decode.float)
+        (Json.Decode.field "meanTournamentPreferenceScore" Json.Decode.float)
+        (Json.Decode.field "highestTournamentPreferenceScore" Json.Decode.float)
+
+
 type alias Game =
     { homeTeam : Team
     , awayTeam : Team
@@ -81,12 +163,46 @@ vanillaGame =
         vanillaTeam
 
 
+encodeGame : Game -> Json.Encode.Value
+encodeGame game =
+    Json.Encode.object
+        [ ( "homeTeam", encodeTeam game.homeTeam )
+        , ( "awayTeam", encodeTeam game.awayTeam )
+        ]
+
+
+decodeGame : Json.Decode.Decoder Game
+decodeGame =
+    Json.Decode.map2 Game
+        (Json.Decode.field "homeTeam" decodeTeam)
+        (Json.Decode.field "awayTeam" decodeTeam)
+
+
 type alias AnalysedGame =
     { game : Game
     , homeTeamPlayingConsecutively : Bool
     , awayTeamPlayingConsecutively : Bool
     , id : Int
     }
+
+
+encodeAnalysedGame : AnalysedGame -> Json.Encode.Value
+encodeAnalysedGame analysedGame =
+    Json.Encode.object
+        [ ( "game", encodeGame analysedGame.game )
+        , ( "homeTeamPlayingConsecutively", Json.Encode.bool analysedGame.homeTeamPlayingConsecutively )
+        , ( "awayTeamPlayingConsecutively", Json.Encode.bool analysedGame.awayTeamPlayingConsecutively )
+        , ( "id", Json.Encode.int analysedGame.id )
+        ]
+
+
+decodeAnalysedGame : Json.Decode.Decoder AnalysedGame
+decodeAnalysedGame =
+    Json.Decode.map4 AnalysedGame
+        (Json.Decode.field "game" decodeGame)
+        (Json.Decode.field "homeTeamPlayingConsecutively" Json.Decode.bool)
+        (Json.Decode.field "awayTeamPlayingConsecutively" Json.Decode.bool)
+        (Json.Decode.field "id" Json.Decode.int)
 
 
 type alias AnalysedTeamFirstPass =
@@ -104,6 +220,27 @@ type alias AnalysedTeam =
     , singleGameBreaks : Int
     , tournamentPreferenceScore : Float
     }
+
+
+encodeAnalysedTeam : AnalysedTeam -> Json.Encode.Value
+encodeAnalysedTeam analysedTeam =
+    Json.Encode.object
+        [ ( "team", encodeTeam analysedTeam.team )
+        , ( "firstGame", Json.Encode.int analysedTeam.firstGame )
+        , ( "lastGame", Json.Encode.int analysedTeam.lastGame )
+        , ( "singleGameBreaks", Json.Encode.int analysedTeam.singleGameBreaks )
+        , ( "tournamentPreferenceScore", Json.Encode.float analysedTeam.tournamentPreferenceScore )
+        ]
+
+
+decodeAnalysedTeam : Json.Decode.Decoder AnalysedTeam
+decodeAnalysedTeam =
+    Json.Decode.map5 AnalysedTeam
+        (Json.Decode.field "team" decodeTeam)
+        (Json.Decode.field "firstGame" Json.Decode.int)
+        (Json.Decode.field "lastGame" Json.Decode.int)
+        (Json.Decode.field "singleGameBreaks" Json.Decode.int)
+        (Json.Decode.field "tournamentPreferenceScore" Json.Decode.float)
 
 
 type alias IndexedTeam =

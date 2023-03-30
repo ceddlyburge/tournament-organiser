@@ -7,8 +7,10 @@ import GameParser
 import Html exposing (Html, a, button, datalist, div, footer, h1, h2, header, input, li, main_, nav, option, p, select, span, strong, sup, text, ul)
 import Html.Attributes exposing (class, disabled, href, id, list, placeholder, selected, title, value)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode
+import Json.Encode
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 import Parser
 import String exposing (fromInt)
 import Svg
@@ -24,6 +26,9 @@ port copyAnalysedGames : String -> Cmd msg
 
 
 port paste : (String -> msg) -> Sub msg
+
+
+port saveToLocalStorage : String -> Cmd msg
 
 
 subscriptions : Model -> Sub Msg
@@ -104,6 +109,46 @@ type alias Model =
     }
 
 
+encodeModel : Model -> Json.Encode.Value
+encodeModel model =
+    Json.Encode.object
+        [ ( "games", Json.Encode.list encodeGame model.games )
+        , ( "teams", Json.Encode.list encodeTeam model.teams )
+        , ( "gameOrderMetrics", Maybe.map encodeGameOrderMetrics model.gameOrderMetrics |> Maybe.withDefault Json.Encode.null )
+        , ( "previousGameOrderMetrics", Maybe.map encodeGameOrderMetrics model.previousGameOrderMetrics |> Maybe.withDefault Json.Encode.null )
+        , ( "tweakedGameOrderMetrics", Maybe.map encodeGameOrderMetrics model.tweakedGameOrderMetrics |> Maybe.withDefault Json.Encode.null )
+        ]
+
+
+decodeModel : Model -> Json.Decode.Decoder Model
+decodeModel vanillaModelWithKey =
+    Json.Decode.map5 (localStorageModelToModel vanillaModelWithKey)
+        (Json.Decode.field "games" (Json.Decode.list decodeGame))
+        (Json.Decode.field "teams" (Json.Decode.list decodeTeam))
+        (Json.Decode.field "gameOrderMetrics" decodeGameOrderMetrics)
+        (Json.Decode.field "previousGameOrderMetrics" decodeGameOrderMetrics)
+        (Json.Decode.field "tweakedGameOrderMetrics" decodeGameOrderMetrics)
+
+
+localStorageModelToModel : Model -> List Game -> List Team -> GameOrderMetrics -> GameOrderMetrics -> GameOrderMetrics -> Model
+localStorageModelToModel vanillaModelWithKey games teams gameOrderMetrics previousGameOrderMetrics tweakedGameOrderMetrics =
+    { vanillaModelWithKey
+        | games = games
+        , teams = teams
+        , gameOrderMetrics = Just gameOrderMetrics
+        , previousGameOrderMetrics = Just previousGameOrderMetrics
+        , tweakedGameOrderMetrics = Just tweakedGameOrderMetrics
+    }
+
+
+
+-- need to write json encoder and decoder for the model
+-- or at least the games, teams, metrics and tweaked metrics
+-- and hence all the things under it
+-- might be a pain
+-- just need to do it though. start with encoding and saving to local storage and check it looks ok
+
+
 vanillaModel : Browser.Navigation.Key -> Model
 vanillaModel key =
     Model
@@ -148,8 +193,13 @@ exampleGames =
     ]
 
 
-init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init _ _ key =
+
+-- should sort out the initial url here, now saving stuff in local storage and everything
+-- should work ok
+
+
+init : Json.Encode.Value -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init savedModel url key =
     ( vanillaModel key, Cmd.none )
 
 
@@ -192,19 +242,16 @@ update msg model =
             ( { model | uiState = GamesView }, Cmd.none )
 
         DeleteGame game ->
-            let
-                newModel : Model
-                newModel =
-                    setGames (List.Extra.remove game model.games)
-                        { model | uiState = GamesView }
-            in
-            ( newModel, Cmd.none )
+            { model | uiState = GamesView }
+                |> setGames (List.Extra.remove game model.games)
+                |> modelAndSaveToLocalStorage
 
         ShowAddGame ->
             ( { model | uiState = AddGameView, homeTeamToAdd = vanillaTeam, awayTeamToAdd = vanillaTeam }, Cmd.none )
 
         AddExampleGames ->
-            ( setGames exampleGames model, Cmd.none )
+            setGames exampleGames model
+                |> modelAndSaveToLocalStorage
 
         -- Add game
         SetHomeTeamNameToAdd teamName ->
@@ -214,13 +261,9 @@ update msg model =
             ( { model | awayTeamToAdd = List.Extra.find (\t -> t.name == teamName) model.teams |> Maybe.withDefault (Team teamName NoPreference) }, Cmd.none )
 
         AddGame ->
-            let
-                newModel : Model
-                newModel =
-                    setGames (Game model.homeTeamToAdd model.awayTeamToAdd :: model.games)
-                        { model | uiState = GamesView }
-            in
-            ( newModel, Cmd.none )
+            { model | uiState = GamesView }
+                |> setGames (Game model.homeTeamToAdd model.awayTeamToAdd :: model.games)
+                |> modelAndSaveToLocalStorage
 
         -- Edit game
         ShowEditGame game ->
@@ -254,14 +297,10 @@ update msg model =
                         ((==) gameToEdit)
                         { gameToEdit | homeTeam = newHomeTeam, awayTeam = newAwayTeam }
                         model.games
-
-                newModel : Model
-                newModel =
-                    setGames newGames { model | uiState = GamesView }
             in
-            ( newModel
-            , Cmd.none
-            )
+            { model | uiState = GamesView }
+                |> setGames newGames
+                |> modelAndSaveToLocalStorage
 
         -- Teams
         EditTournamentPreference teamToEdit tournamentPreference ->
@@ -302,9 +341,9 @@ update msg model =
                         )
                         model.games
             in
-            ( setGames editedGames { model | teams = editedTeams }
-            , Cmd.none
-            )
+            { model | teams = editedTeams }
+                |> setGames editedGames
+                |> modelAndSaveToLocalStorage
 
         OptimiseGameOrder ->
             let
@@ -317,13 +356,12 @@ update msg model =
                 gameOrderMetrics =
                     optimiseAllPermutations games model.gameOrderMetrics
             in
-            ( { model
+            { model
                 | previousGameOrderMetrics = model.gameOrderMetrics
                 , gameOrderMetrics = Just gameOrderMetrics
                 , tweakedGameOrderMetrics = Just gameOrderMetrics
-              }
-            , Cmd.none
-            )
+            }
+                |> modelAndSaveToLocalStorage
 
         -- Copy / Paste
         CopyAnalysedGames analysedGames ->
@@ -338,7 +376,8 @@ update msg model =
 
         PasteGames games ->
             if model.uiState == GamesView then
-                ( setGames games model, Cmd.none )
+                setGames games model
+                    |> modelAndSaveToLocalStorage
 
             else
                 ( model, Cmd.none )
@@ -348,12 +387,15 @@ update msg model =
             let
                 ( dnd, updatedTweakedGames ) =
                     system.update dndMsg model.dnd (tweakedGamesWithDefault model)
+
+                newModel =
+                    { model
+                        | dnd = dnd
+                        , tweakedGameOrderMetrics = Just (calculateGameOrderMetrics (List.map .game updatedTweakedGames))
+                    }
             in
-            ( { model
-                | dnd = dnd
-                , tweakedGameOrderMetrics = Just (calculateGameOrderMetrics (List.map .game updatedTweakedGames))
-              }
-            , system.commands dnd
+            ( newModel
+            , Cmd.batch [ system.commands dnd, encodeModel newModel |> Json.Encode.encode 2 |> saveToLocalStorage ]
             )
 
         -- Routing
@@ -377,6 +419,11 @@ update msg model =
 
                 Browser.External href ->
                     ( model, Browser.Navigation.load href )
+
+
+modelAndSaveToLocalStorage : Model -> ( Model, Cmd msg )
+modelAndSaveToLocalStorage model =
+    ( model, encodeModel model |> Json.Encode.encode 2 |> saveToLocalStorage )
 
 
 tweakedGamesWithDefault : Model -> List AnalysedGame
@@ -986,7 +1033,7 @@ editIcon =
         ]
 
 
-main : Program () Model Msg
+main : Program Json.Encode.Value Model Msg
 main =
     Browser.application
         { view = view
