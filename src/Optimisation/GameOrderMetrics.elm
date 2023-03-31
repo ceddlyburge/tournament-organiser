@@ -139,15 +139,19 @@ encodeGameOrderMetrics gameOrderMetrics =
         ]
 
 
-decodeGameOrderMetrics : Json.Decode.Decoder GameOrderMetrics
+decodeGameOrderMetrics : Json.Decode.Decoder (Maybe GameOrderMetrics)
 decodeGameOrderMetrics =
-    Json.Decode.map6 GameOrderMetrics
-        (Json.Decode.field "analysedGames" (Json.Decode.list decodeAnalysedGame))
-        (Json.Decode.field "analysedTeams" (Json.Decode.list decodeAnalysedTeam))
-        (Json.Decode.field "occurencesOfTeamsPlayingConsecutiveGames" Json.Decode.int)
-        (Json.Decode.field "lowestTournamentPreferenceScore" Json.Decode.float)
-        (Json.Decode.field "meanTournamentPreferenceScore" Json.Decode.float)
-        (Json.Decode.field "highestTournamentPreferenceScore" Json.Decode.float)
+    Json.Decode.oneOf
+        [ Json.Decode.null Nothing
+        , Json.Decode.map6 GameOrderMetrics
+            (Json.Decode.field "analysedGames" (Json.Decode.list decodeAnalysedGame))
+            (Json.Decode.field "analysedTeams" (Json.Decode.list decodeAnalysedTeam))
+            (Json.Decode.field "occurencesOfTeamsPlayingConsecutiveGames" Json.Decode.int)
+            (Json.Decode.field "lowestTournamentPreferenceScore" Json.Decode.float)
+            (Json.Decode.field "meanTournamentPreferenceScore" Json.Decode.float)
+            (Json.Decode.field "highestTournamentPreferenceScore" Json.Decode.float)
+            |> Json.Decode.map Just
+        ]
 
 
 type alias Game =

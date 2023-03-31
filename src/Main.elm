@@ -130,23 +130,15 @@ decodeModel vanillaModelWithKey =
         (Json.Decode.field "tweakedGameOrderMetrics" decodeGameOrderMetrics)
 
 
-localStorageModelToModel : Model -> List Game -> List Team -> GameOrderMetrics -> GameOrderMetrics -> GameOrderMetrics -> Model
+localStorageModelToModel : Model -> List Game -> List Team -> Maybe GameOrderMetrics -> Maybe GameOrderMetrics -> Maybe GameOrderMetrics -> Model
 localStorageModelToModel vanillaModelWithKey games teams gameOrderMetrics previousGameOrderMetrics tweakedGameOrderMetrics =
     { vanillaModelWithKey
         | games = games
         , teams = teams
-        , gameOrderMetrics = Just gameOrderMetrics
-        , previousGameOrderMetrics = Just previousGameOrderMetrics
-        , tweakedGameOrderMetrics = Just tweakedGameOrderMetrics
+        , gameOrderMetrics = gameOrderMetrics
+        , previousGameOrderMetrics = previousGameOrderMetrics
+        , tweakedGameOrderMetrics = tweakedGameOrderMetrics
     }
-
-
-
--- need to write json encoder and decoder for the model
--- or at least the games, teams, metrics and tweaked metrics
--- and hence all the things under it
--- might be a pain
--- just need to do it though. start with encoding and saving to local storage and check it looks ok
 
 
 vanillaModel : Browser.Navigation.Key -> Model
@@ -193,14 +185,19 @@ exampleGames =
     ]
 
 
-
--- should sort out the initial url here, now saving stuff in local storage and everything
--- should work ok
-
-
 init : Json.Encode.Value -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init savedModel url key =
-    ( vanillaModel key, Cmd.none )
+init savedModelJson url key =
+    let
+        vanillaModelWithKey : Model
+        vanillaModelWithKey =
+            vanillaModel key
+
+        initialModel : Model
+        initialModel =
+            Json.Decode.decodeValue (decodeModel vanillaModelWithKey) savedModelJson
+                |> Result.withDefault vanillaModelWithKey
+    in
+    update (UrlChanged url) initialModel
 
 
 
@@ -388,6 +385,7 @@ update msg model =
                 ( dnd, updatedTweakedGames ) =
                     system.update dndMsg model.dnd (tweakedGamesWithDefault model)
 
+                newModel : Model
                 newModel =
                     { model
                         | dnd = dnd
