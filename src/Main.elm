@@ -516,7 +516,7 @@ view model =
                     []
                     [ span
                         []
-                        [ text "This page was "
+                        [ text "This page, with caching, was "
                         , strong
                             []
                             [ text "just "
@@ -549,7 +549,7 @@ view model =
                         , text " equivalent"
                         , text ". "
                         , a
-                            [ href "http://green-pages.eco/page-statistics" ]
+                            [ href "http://green-pages.earth/page-statistics" ]
                             [ text "Read more ..." ]
                         ]
                     ]

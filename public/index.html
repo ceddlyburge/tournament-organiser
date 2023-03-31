@@ -23,10 +23,10 @@
         // Show page stats
         const updatePageSize = () => {
             const transferSizeB =
-                performance
+                Math.max(performance
                     .getEntriesByType("resource")
                     .map((x) => x.transferSize)
-                    .reduce((a, b) => (a + b), 0);
+                    .reduce((a, b) => (a + b), 0), 1000);
 
             document.getElementById('transferSizeKb').innerText = (transferSizeB / 1000).toFixed(0);
 
@@ -35,12 +35,16 @@
         }
 
         const updatePageLoadTime = () => {
-            const loadTimeMs = performance.timing?.domComplete - performance.timing?.navigationStart
+            const loadTimeMs = Math.max(performance.timing?.domComplete - performance.timing?.navigationStart, 0.1)
 
             document.getElementById('loadTimeS').innerText = (loadTimeMs / 1000).toFixed(1);
         };
 
-        window.addEventListener('load', updatePageSize);
-        window.addEventListener('load', updatePageLoadTime);
+        const updatePageStats = () => {
+            updatePageSize();
+            updatePageLoadTime();
+        }
+
+        window.addEventListener('load', updatePageStats);
     </script>
 </html>
