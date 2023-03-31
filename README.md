@@ -57,9 +57,10 @@
 - [x] add favicon
 - [x] add some explanation text to teams page
 - [x] style tweak and optimise view to have dash in the middle
-- [ ] maybe make the anchor spans grey or something when they are unavailable, and different when they are on the current page
 - [x] save to local storage
-- [ ] This page was just 0Kb (internet average ~3000kb) and loaded in just 0.8 seconds. Very approximately, this equates to just 0.0000 grams of CO2 equivalent. (when refreshing page, prob cos the service worker does it all)
+- [x] This page was just 0Kb (internet average ~3000kb) and loaded in just 0.8 seconds. Very approximately, this equates to just 0.0000 grams of CO2 equivalent. (when refreshing page, prob cos the service worker does it all)
+- [x] nav goes across two lines on my phone
+- [ ] maybe make the anchor spans grey or something when they are unavailable, and different when they are on the current page
 
 Sort dx. This is all optional and not sure I can be bothered
 
@@ -72,9 +73,10 @@ Sort dx. This is all optional and not sure I can be bothered
 Release
 
 - [x] create a build, could simply be just on netlify? Maybe something else is better though. have elm review in build.
-- [x] set up branch protection? and work on a branch and protect main?
+- [ ] set up branch protection? and work on a branch and protect main?
 - [x] Release app to netlify or similar. maybe render. see if pull request deploy previews work. they should, its a simple case
 - [ ] Update readme with some friendly text
+- [ ] manual end to end test with copy paste
 - [ ] Publicise on canoe polo facebook groups, on discourse / newsletter, at work?
 - [ ] See if the johnson trotter algorithm is wanted by anyone (or the depth first one I'm actually using)
 - [ ] See if can get touch working in dnd package

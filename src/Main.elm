@@ -473,38 +473,21 @@ view model =
 
                       else
                         a [ href "/" ] [ text "Games" ]
-                    , span [] [ text " - " ]
                     , if List.isEmpty model.games || model.uiState == TeamsView then
                         span [] [ text "Teams" ]
 
                       else
                         a [ href "/#/teams" ] [ text "Teams" ]
-                    , span [] [ text " - " ]
                     , if List.isEmpty model.games || model.uiState == OptimiseView then
                         span [] [ text "Optimise" ]
 
                       else
                         a [ href "/#/optimise" ] [ text "Optimise" ]
-                    , span [] [ text " - " ]
                     , if model.gameOrderMetrics == Nothing || model.uiState == TweakView then
                         span [] [ text "Tweak" ]
 
                       else
-                        let
-                            tweakDisabled : Bool
-                            tweakDisabled =
-                                case model.gameOrderMetrics of
-                                    Nothing ->
-                                        True
-
-                                    Just gameOrderMetrics ->
-                                        List.isEmpty gameOrderMetrics.analysedGames
-                        in
-                        a
-                            [ href "/#/tweak"
-                            , disabled (tweakDisabled && model.uiState /= TweakView)
-                            ]
-                            [ text "Tweak" ]
+                        a [ href "/#/tweak" ] [ text "Tweak" ]
                     ]
                 ]
             , main_

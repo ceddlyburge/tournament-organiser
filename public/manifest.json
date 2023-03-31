@@ -3,9 +3,15 @@
   "name": "Tournament Organiser",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "favicon.webp",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/webp"
+    },
+    {
+      "src": "splash-screen.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "./index.html",

@@ -161,6 +161,10 @@ strong {
   text-align: center;
 }
 
+body {
+  min-width: 300px;
+}
+
 .body {
   min-inline-size: calc(var(--measure)* 0.75);
   padding-block: var(--s1);
@@ -222,7 +226,6 @@ li button {
   flex-grow: 1;
   flex-basis: 0;
   text-align: right;
-  width:
 }
 
 .awayTeam {
@@ -294,6 +297,8 @@ li::marker {
 
 nav {
   width: fit-content;
+  display: flex;
+  gap: var(--s-3);
 }
 
 p,h1,h2,h3,h4,h5,h6,ul,ol  {
