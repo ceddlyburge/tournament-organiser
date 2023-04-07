@@ -13,5 +13,6 @@ https://tournament-organiser.onrender.com/
 
 ## Roadmap
 
+- [ ] Add an 'evenly spaced' team preference
 - [ ] Allow touch drag drop in the tweak view
 - [ ] Scroll the list while dragging off the screen in the tweak view
