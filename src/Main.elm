@@ -10,11 +10,13 @@ import Html.Events exposing (onClick, onInput)
 import Json.Decode
 import Json.Encode
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, stringToTournamentPreference, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 import Parser
+import Process
 import String exposing (fromInt)
 import Svg
 import Svg.Attributes
+import Task
 import Url
 
 
@@ -81,6 +83,7 @@ type UiState
 
 
 type alias Model =
+    -- could probably do some better work here to make invalid states unrepresentable
     { key : Browser.Navigation.Key
     , uiState : UiState
 
@@ -102,6 +105,7 @@ type alias Model =
     -- optimise
     , gameOrderMetrics : Maybe GameOrderMetrics
     , previousGameOrderMetrics : Maybe GameOrderMetrics
+    , optimising : Bool
 
     -- tweak
     , dnd : DnDList.Model
@@ -155,33 +159,34 @@ vanillaModel key =
         []
         Nothing
         Nothing
+        False
         system.model
         Nothing
 
 
 exampleGames : List Game
 exampleGames =
-    [ Game (Team "ULU" TwoGamesRest) (Team "Braintree" TwoGamesRest)
-    , Game (Team "ULU" TwoGamesRest) (Team "Surrey" TwoGamesRest)
-    , Game (Team "ULU" TwoGamesRest) (Team "VKC" TwoGamesRest)
-    , Game (Team "ULU" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-    , Game (Team "ULU" TwoGamesRest) (Team "East End" TwoGamesRest)
-    , Game (Team "ULU" TwoGamesRest) (Team "Castle" TwoGamesRest)
-    , Game (Team "Braintree" TwoGamesRest) (Team "Surrey" TwoGamesRest)
-    , Game (Team "Braintree" TwoGamesRest) (Team "VKC" TwoGamesRest)
-    , Game (Team "Braintree" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-    , Game (Team "Braintree" TwoGamesRest) (Team "East End" TwoGamesRest)
-    , Game (Team "Braintree" TwoGamesRest) (Team "Castle" TwoGamesRest)
-    , Game (Team "Surrey" TwoGamesRest) (Team "VKC" TwoGamesRest)
-    , Game (Team "Surrey" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-    , Game (Team "Surrey" TwoGamesRest) (Team "East End" TwoGamesRest)
-    , Game (Team "Surrey" TwoGamesRest) (Team "Castle" TwoGamesRest)
-    , Game (Team "VKC" TwoGamesRest) (Team "St Albans" TwoGamesRest)
-    , Game (Team "VKC" TwoGamesRest) (Team "East End" TwoGamesRest)
-    , Game (Team "VKC" TwoGamesRest) (Team "Castle" TwoGamesRest)
-    , Game (Team "St Albans" TwoGamesRest) (Team "East End" TwoGamesRest)
-    , Game (Team "St Albans" TwoGamesRest) (Team "Castle" TwoGamesRest)
-    , Game (Team "East End" TwoGamesRest) (Team "Castle" TwoGamesRest)
+    [ Game (Team "ULU" EvenlySpaced) (Team "Braintree" EvenlySpaced)
+    , Game (Team "ULU" EvenlySpaced) (Team "Surrey" EvenlySpaced)
+    , Game (Team "ULU" EvenlySpaced) (Team "VKC" EvenlySpaced)
+    , Game (Team "ULU" EvenlySpaced) (Team "St Albans" EvenlySpaced)
+    , Game (Team "ULU" EvenlySpaced) (Team "East End" EvenlySpaced)
+    , Game (Team "ULU" EvenlySpaced) (Team "Castle" EvenlySpaced)
+    , Game (Team "Braintree" EvenlySpaced) (Team "Surrey" EvenlySpaced)
+    , Game (Team "Braintree" EvenlySpaced) (Team "VKC" EvenlySpaced)
+    , Game (Team "Braintree" EvenlySpaced) (Team "St Albans" EvenlySpaced)
+    , Game (Team "Braintree" EvenlySpaced) (Team "East End" EvenlySpaced)
+    , Game (Team "Braintree" EvenlySpaced) (Team "Castle" EvenlySpaced)
+    , Game (Team "Surrey" EvenlySpaced) (Team "VKC" EvenlySpaced)
+    , Game (Team "Surrey" EvenlySpaced) (Team "St Albans" EvenlySpaced)
+    , Game (Team "Surrey" EvenlySpaced) (Team "East End" EvenlySpaced)
+    , Game (Team "Surrey" EvenlySpaced) (Team "Castle" EvenlySpaced)
+    , Game (Team "VKC" EvenlySpaced) (Team "St Albans" EvenlySpaced)
+    , Game (Team "VKC" EvenlySpaced) (Team "East End" EvenlySpaced)
+    , Game (Team "VKC" EvenlySpaced) (Team "Castle" EvenlySpaced)
+    , Game (Team "St Albans" EvenlySpaced) (Team "East End" EvenlySpaced)
+    , Game (Team "St Albans" EvenlySpaced) (Team "Castle" EvenlySpaced)
+    , Game (Team "East End" EvenlySpaced) (Team "Castle" EvenlySpaced)
     ]
 
 
@@ -222,6 +227,7 @@ type Msg
     | EditGame
       -- edit team
     | EditTournamentPreference Team TournamentPreference
+    | StartOptimiseGameOrder
     | OptimiseGameOrder
     | CopyAnalysedGames (List AnalysedGame)
       -- Tweak
@@ -342,6 +348,9 @@ update msg model =
                 |> setGames editedGames
                 |> modelAndSaveToLocalStorage
 
+        StartOptimiseGameOrder ->
+            ( { model | optimising = True }, Process.sleep 1 |> Task.perform (always OptimiseGameOrder) )
+
         OptimiseGameOrder ->
             let
                 games : List Game
@@ -353,12 +362,25 @@ update msg model =
                 gameOrderMetrics =
                     optimiseAllPermutations games model.gameOrderMetrics
             in
-            { model
-                | previousGameOrderMetrics = model.gameOrderMetrics
-                , gameOrderMetrics = Just gameOrderMetrics
-                , tweakedGameOrderMetrics = Just gameOrderMetrics
-            }
-                |> modelAndSaveToLocalStorage
+            if Just gameOrderMetrics == model.gameOrderMetrics then
+                -- no change from the last attempt, so finished the optimisation
+                { model
+                    | previousGameOrderMetrics = model.gameOrderMetrics
+                    , gameOrderMetrics = Just gameOrderMetrics
+                    , tweakedGameOrderMetrics = Just gameOrderMetrics
+                    , optimising = False
+                }
+                    |> modelAndSaveToLocalStorage
+
+            else
+                -- we found a better optimisation, so try again for an even better one
+                ( { model
+                    | previousGameOrderMetrics = model.gameOrderMetrics
+                    , gameOrderMetrics = Just gameOrderMetrics
+                    , tweakedGameOrderMetrics = Just gameOrderMetrics
+                  }
+                , Process.sleep 1 |> Task.perform (always OptimiseGameOrder)
+                )
 
         -- Copy / Paste
         CopyAnalysedGames analysedGames ->
@@ -441,7 +463,7 @@ setGames games model =
         oldTeams =
             List.filter (\team -> List.any (\game -> playing team game) games) model.teams
 
-        newTeams : List { name : String, tournamentPreference : TournamentPreference }
+        newTeams : List Team
         newTeams =
             List.concatMap (\game -> [ game.homeTeam, game.awayTeam ]) games
                 |> List.Extra.unique
@@ -722,13 +744,13 @@ teamView team =
 tournamentPreferenceSelector : Team -> Html Msg
 tournamentPreferenceSelector team =
     select
-        [ onInput (\s -> EditTournamentPreference team (tournamentPreferenceFromString s))
+        [ onInput (\s -> EditTournamentPreference team (stringToTournamentPreference s |> Maybe.withDefault NoPreference))
         , title "Choose team preference"
         ]
         [ tournamentPreferenceOption team NoPreference
         , tournamentPreferenceOption team StartLate
         , tournamentPreferenceOption team FinishEarly
-        , tournamentPreferenceOption team TwoGamesRest
+        , tournamentPreferenceOption team EvenlySpaced
         ]
 
 
@@ -756,18 +778,25 @@ optimiseView model =
 
         copyDisabled : Bool
         copyDisabled =
-            model.gameOrderMetrics == Nothing
+            model.gameOrderMetrics == Nothing || model.optimising
 
         analysedGames : List AnalysedGame
         analysedGames =
             Maybe.map .analysedGames model.gameOrderMetrics |> Maybe.withDefault []
     in
     button
-        [ onClick OptimiseGameOrder
+        [ onClick StartOptimiseGameOrder
         , class "primary center"
         , disabled optimiseDisabled
         ]
-        [ text "Optimise" ]
+        [ text
+            (if model.optimising then
+                "Optimising ..."
+
+             else
+                "Optimise"
+            )
+        ]
         :: button
             [ onClick (CopyAnalysedGames analysedGames)
             , class "secondary center"
@@ -797,14 +826,39 @@ optimisationExplanation previousGameOrderMetrics gameOrderMetrics =
         [ p [] [ text "Showing the best game order, the team preferences are accommodated with 100% success" ] ]
 
     else if Just gameOrderMetrics /= previousGameOrderMetrics then
-        [ p [] [ text "Showing the best game order I found so far. You can click 'Optimise' again to analyse more options." ]
+        [ p [] [ text "Showing the best game order I found so far." ]
         , preferenceExplanation gameOrderMetrics
+        , analysedTeamsExplanation gameOrderMetrics
         ]
 
     else
         [ p [] [ text "Showing the best game order I could find." ]
         , preferenceExplanation gameOrderMetrics
+        , analysedTeamsExplanation gameOrderMetrics
         ]
+
+
+analysedTeamsExplanation : GameOrderMetrics -> Html Msg
+analysedTeamsExplanation gameOrderMetrics =
+    let
+        teamScores : String
+        teamScores =
+            List.map
+                (\analysedTeam -> analysedTeam.team.name ++ " " ++ percentage analysedTeam.tournamentPreferenceScore ++ "%")
+                gameOrderMetrics.analysedTeams
+                |> String.join ", "
+    in
+    p
+        []
+        [ text teamScores ]
+
+
+percentage : Float -> String
+percentage zeroToOne =
+    zeroToOne
+        * 100
+        |> floor
+        |> String.fromInt
 
 
 preferenceExplanation : GameOrderMetrics -> Html Msg
@@ -812,17 +866,11 @@ preferenceExplanation gameOrderMetrics =
     let
         lowestTournamentPreferenceScore : String
         lowestTournamentPreferenceScore =
-            gameOrderMetrics.lowestTournamentPreferenceScore
-                * 100
-                |> floor
-                |> String.fromInt
+            percentage gameOrderMetrics.lowestTournamentPreferenceScore
 
         highestTournamentPreferenceScore : String
         highestTournamentPreferenceScore =
-            gameOrderMetrics.highestTournamentPreferenceScore
-                * 100
-                |> floor
-                |> String.fromInt
+            percentage gameOrderMetrics.highestTournamentPreferenceScore
 
         explanation : String
         explanation =

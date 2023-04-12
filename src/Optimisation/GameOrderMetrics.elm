@@ -1,7 +1,4 @@
--- todo: expose a bit less, although tests probably still want some things to be exposed.
-
-
-module Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, GameOrderMetrics, IndexedTeam, Team, TournamentPreference(..), analyseTeams, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, tournamentPreferenceFromString, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+module Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, GameOrderMetrics, IndexedTeam, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestCompactionScore, calculateTwoGamesRestScore, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, singleGameBreaks, stringToTournamentPreference, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 
 import Array exposing (Array)
 import Json.Decode
@@ -13,7 +10,7 @@ import Optimisation.Permutations exposing (permutations2)
 type TournamentPreference
     = StartLate
     | FinishEarly
-    | TwoGamesRest
+    | EvenlySpaced
     | NoPreference
 
 
@@ -49,8 +46,8 @@ tournamentPreferenceToString tournamentPreference =
         FinishEarly ->
             "Finish early"
 
-        TwoGamesRest ->
-            "Two games rest"
+        EvenlySpaced ->
+            "Evenly spaced"
 
         NoPreference ->
             "No preference"
@@ -65,30 +62,14 @@ stringToTournamentPreference tournamentPreferenceString =
         "Finish early" ->
             Just FinishEarly
 
-        "Two games rest" ->
-            Just TwoGamesRest
+        "Evenly spaced" ->
+            Just EvenlySpaced
 
         "No preference" ->
             Just NoPreference
 
         _ ->
             Nothing
-
-
-tournamentPreferenceFromString : String -> TournamentPreference
-tournamentPreferenceFromString tournamentPreferenceString =
-    case tournamentPreferenceString of
-        "Start late" ->
-            StartLate
-
-        "Finish early" ->
-            FinishEarly
-
-        "Two games rest" ->
-            TwoGamesRest
-
-        _ ->
-            NoPreference
 
 
 type alias Team =
@@ -114,7 +95,7 @@ decodeTeam =
 
 vanillaTeam : Team
 vanillaTeam =
-    Team "" TwoGamesRest
+    Team "" EvenlySpaced
 
 
 type alias GameOrderMetrics =
@@ -213,7 +194,7 @@ type alias AnalysedTeamFirstPass =
     { team : Team
     , firstGame : Int
     , lastGame : Int
-    , singleGameBreaks : Int
+    , gameBreaks : List Int
     }
 
 
@@ -221,7 +202,7 @@ type alias AnalysedTeam =
     { team : Team
     , firstGame : Int
     , lastGame : Int
-    , singleGameBreaks : Int
+    , gameBreaks : List Int
     , tournamentPreferenceScore : Float
     }
 
@@ -232,7 +213,7 @@ encodeAnalysedTeam analysedTeam =
         [ ( "team", encodeTeam analysedTeam.team )
         , ( "firstGame", Json.Encode.int analysedTeam.firstGame )
         , ( "lastGame", Json.Encode.int analysedTeam.lastGame )
-        , ( "singleGameBreaks", Json.Encode.int analysedTeam.singleGameBreaks )
+        , ( "gameBreaks", Json.Encode.list Json.Encode.int analysedTeam.gameBreaks )
         , ( "tournamentPreferenceScore", Json.Encode.float analysedTeam.tournamentPreferenceScore )
         ]
 
@@ -243,7 +224,7 @@ decodeAnalysedTeam =
         (Json.Decode.field "team" decodeTeam)
         (Json.Decode.field "firstGame" Json.Decode.int)
         (Json.Decode.field "lastGame" Json.Decode.int)
-        (Json.Decode.field "singleGameBreaks" Json.Decode.int)
+        (Json.Decode.field "gameBreaks" (Json.Decode.list Json.Decode.int))
         (Json.Decode.field "tournamentPreferenceScore" Json.Decode.float)
 
 
@@ -280,7 +261,7 @@ optimiseCurtailedPermutations curtail games gameOrderMetrics =
         -- find them. Less memory usage. And probably a little bit faster.
         gameOrders : List (List Game)
         gameOrders =
-            permutations2 100000 curtail games
+            permutations2 1000000 curtail games
     in
     List.foldr
         (\gameOrder currentBestGameOrderMetrics ->
@@ -449,17 +430,10 @@ analyseTeam ( indexedTeam, indexedTeams ) =
             { analysedTeam
                 | firstGame = min analysedTeam.firstGame indexedTeam2.gameIndex
                 , lastGame = max analysedTeam.lastGame indexedTeam2.gameIndex
-                , singleGameBreaks =
-                    analysedTeam.singleGameBreaks
-                        + (if indexedTeam2.gameIndex - analysedTeam.lastGame <= 2 then
-                            1
-
-                           else
-                            0
-                          )
+                , gameBreaks = (indexedTeam2.gameIndex - analysedTeam.lastGame) :: analysedTeam.gameBreaks
             }
         )
-        (AnalysedTeamFirstPass indexedTeam.team indexedTeam.gameIndex indexedTeam.gameIndex 0)
+        (AnalysedTeamFirstPass indexedTeam.team indexedTeam.gameIndex indexedTeam.gameIndex [])
         indexedTeams
 
 
@@ -514,8 +488,8 @@ calculateTeamTournamentPreferenceScore games occurencesOfTeamsPlayingConsecutive
                     FinishEarly ->
                         calculateFinishEarlyScore (calculateTeamNumberOfGames games analysedTeamFirstPass) (List.length games) analysedTeamFirstPass
 
-                    TwoGamesRest ->
-                        calculateTwoGamesRestScore (calculateTeamNumberOfGames games analysedTeamFirstPass) (List.length games) analysedTeamFirstPass
+                    EvenlySpaced ->
+                        calculateEvenlySpacedWithTwoGamesRestScore (calculateTeamNumberOfGames games analysedTeamFirstPass) (List.length games) analysedTeamFirstPass
 
                     NoPreference ->
                         1
@@ -523,7 +497,7 @@ calculateTeamTournamentPreferenceScore games occurencesOfTeamsPlayingConsecutive
     { team = analysedTeamFirstPass.team
     , firstGame = analysedTeamFirstPass.firstGame
     , lastGame = analysedTeamFirstPass.lastGame
-    , singleGameBreaks = analysedTeamFirstPass.singleGameBreaks
+    , gameBreaks = analysedTeamFirstPass.gameBreaks
     , tournamentPreferenceScore = score
     }
 
@@ -552,6 +526,13 @@ calculateFinishEarlyScore teamNumberOfGames numberOfGames analysedTeam =
     toFloat (latestPossibleFinish - analysedTeam.lastGame) / toFloat (latestPossibleFinish - earliestPossibleFinish)
 
 
+calculateEvenlySpacedWithTwoGamesRestScore : Int -> Int -> AnalysedTeamFirstPass -> Float
+calculateEvenlySpacedWithTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam =
+    min
+        (calculateEvenlySpacedScore teamNumberOfGames numberOfGames analysedTeam)
+        (calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam)
+
+
 calculateTwoGamesRestScore : Int -> Int -> AnalysedTeamFirstPass -> Float
 calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam =
     let
@@ -568,5 +549,56 @@ calculateTwoGamesRestScore teamNumberOfGames numberOfGames analysedTeam =
 
     else
         1
-            - toFloat (analysedTeam.singleGameBreaks - minimumPossibleSingleGameBreaks)
+            - toFloat (singleGameBreaks analysedTeam.gameBreaks - minimumPossibleSingleGameBreaks)
             / toFloat (teamNumberOfGames - 1 - minimumPossibleSingleGameBreaks)
+
+
+calculateEvenlySpacedScore : Int -> Int -> AnalysedTeamFirstPass -> Float
+calculateEvenlySpacedScore teamNumberOfGames numberOfGames analysedTeam =
+    let
+        earliestPossiblePenultimateGame : Int
+        earliestPossiblePenultimateGame =
+            (teamNumberOfGames - 1) * 2 - 1
+
+        worstFeasibleSpacing : Int
+        worstFeasibleSpacing =
+            numberOfGames - earliestPossiblePenultimateGame - 2
+    in
+    if worstFeasibleSpacing == 0 then
+        1
+
+    else
+        let
+            spacing : Int
+            spacing =
+                (List.maximum analysedTeam.gameBreaks |> Maybe.withDefault 0) - (List.minimum analysedTeam.gameBreaks |> Maybe.withDefault 0)
+        in
+        toFloat (worstFeasibleSpacing - spacing) / toFloat worstFeasibleSpacing
+
+
+singleGameBreaks : List Int -> Int
+singleGameBreaks gameBreaks =
+    List.Extra.count ((==) 2) gameBreaks
+
+
+
+-- calculateTwoGamesRestCompactionScore : Int -> Int -> AnalysedTeamFirstPass -> Float
+-- calculateTwoGamesRestCompactionScore teamNumberOfGames numberOfGames analysedTeam =
+--     -- delete / comment this if we don't use it
+--     let
+--         worstPossibleCompaction : Int
+--         worstPossibleCompaction =
+--             numberOfGames - 1
+--         bestPossibleCompaction : Int
+--         bestPossibleCompaction =
+--             teamNumberOfGames * 3 - 2 - 1
+--     in
+--     if worstPossibleCompaction - bestPossibleCompaction <= 0 then
+--         1
+--     else
+--         let
+--             teamCompaction : Int
+--             teamCompaction =
+--                 analysedTeam.lastGame - analysedTeam.firstGame
+--         in
+--         1 - (toFloat (teamCompaction - bestPossibleCompaction) / toFloat (worstPossibleCompaction - bestPossibleCompaction))

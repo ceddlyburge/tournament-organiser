@@ -2,7 +2,7 @@ module GameOrderMetricsTests exposing (all)
 
 import Expect
 import List
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, Team, TournamentPreference(..), analyseTeams, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, optimiseAllPermutations)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestCompactionScore, calculateTwoGamesRestScore, optimiseAllPermutations, singleGameBreaks)
 import Test exposing (Test, describe, test)
 
 
@@ -57,9 +57,9 @@ all =
                     ]
                     |> .analysedTeams
                     |> Expect.equal
-                        [ AnalysedTeam (team "Castle") 0 1 1 0
-                        , AnalysedTeam (team "Avon") 0 0 0 0
-                        , AnalysedTeam (team "Battersea") 1 1 0 0
+                        [ AnalysedTeam (team "Castle") 0 1 [ 1 ] 0
+                        , AnalysedTeam (team "Avon") 0 0 [] 0
+                        , AnalysedTeam (team "Battersea") 1 1 [] 0
                         ]
         , test "Single game breaks" <|
             \_ ->
@@ -69,9 +69,9 @@ all =
                     , Game (team "Meridian") (team "Castle")
                     ]
                     |> .analysedTeams
-                    |> List.filter (\aTeam -> aTeam.singleGameBreaks > 0)
+                    |> List.filter (\aTeam -> singleGameBreaks aTeam.gameBreaks > 0)
                     |> Expect.equal
-                        [ AnalysedTeam (team "Castle") 0 2 1 1 ]
+                        [ AnalysedTeam (team "Castle") 0 2 [ 2 ] 1 ]
         , test "No single game breaks" <|
             \_ ->
                 calculateGameOrderMetrics
@@ -81,7 +81,7 @@ all =
                     , Game (team "Meridian") (team "Castle")
                     ]
                     |> .analysedTeams
-                    |> List.filter (\aTeam -> aTeam.singleGameBreaks > 0)
+                    |> List.filter (\aTeam -> singleGameBreaks aTeam.gameBreaks > 0)
                     |> Expect.equal []
         , test "Castle finish as early as they possibly can" <|
             \_ ->
@@ -92,7 +92,7 @@ all =
                     , anyGame
                     ]
                     0
-                    (AnalysedTeamFirstPass castleFinishEarly 0 2 1)
+                    (AnalysedTeamFirstPass castleFinishEarly 0 2 [ 2 ])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
         , test "Castle finish as late as they possibly can" <|
@@ -104,7 +104,7 @@ all =
                     , Game anyTeam castleFinishEarly
                     ]
                     0
-                    (AnalysedTeamFirstPass castleFinishEarly 0 3 1)
+                    (AnalysedTeamFirstPass castleFinishEarly 0 3 [ 3 ])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
         , test "Battersea start as late as the possibly can" <|
@@ -116,7 +116,7 @@ all =
                     , Game anyTeam batterseaStartLate
                     ]
                     0
-                    (AnalysedTeamFirstPass batterseaStartLate 1 3 1)
+                    (AnalysedTeamFirstPass batterseaStartLate 1 3 [ 2 ])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
         , test "Battersea start as early as the possibly can" <|
@@ -128,10 +128,111 @@ all =
                     , Game anyTeam batterseaStartLate
                     ]
                     0
-                    (AnalysedTeamFirstPass batterseaStartLate 0 3 1)
+                    (AnalysedTeamFirstPass batterseaStartLate 0 3 [ 2 ])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
         , test "Avon always get two games rest" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- ]
+                calculateTwoGamesRestScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 4 [ 3 ])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon only play one game, so always get two games rest" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- ]
+                calculateTwoGamesRestScore 1 3 (AnalysedTeamFirstPass avonTwoGamesRest 1 1 [])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon never get two games rest" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- ]
+                calculateTwoGamesRestScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 3 [ 2 ])
+                    |> Expect.within (Expect.Absolute 0.0001) 0
+        , test "Avon perfectly compact with two games rest" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- ]
+                calculateTwoGamesRestCompactionScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 4 [ 3 ])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon only play one game, so perfectly compact" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- ]
+                calculateTwoGamesRestCompactionScore 1 3 (AnalysedTeamFirstPass avonTwoGamesRest 1 1 [])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon better than perfect compaction" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- ]
+                calculateTwoGamesRestCompactionScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 3 [ 2 ])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon evenly spaced" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- ]
+                calculateEvenlySpacedScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 4 [ 3 ])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon only play one game, so evenly spaced" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- ]
+                calculateEvenlySpacedScore 1 3 (AnalysedTeamFirstPass avonTwoGamesRest 1 1 [])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon evenly spaced by a single game" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- ]
+                calculateEvenlySpacedScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 3 [])
+                    |> Expect.within (Expect.Absolute 0.0001) 1
+        , test "Avon spaced unevenly" <|
+            \_ ->
+                -- [ Game avonTwoGamesRest anyTeam
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- , anyGame
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- , anyGame
+                -- , Game anyTeam avonTwoGamesRest
+                -- ]
+                calculateEvenlySpacedScore 6 18 (AnalysedTeamFirstPass avonTwoGamesRest 1 18 [ 3, 5, 4, 3, 2 ])
+                    |> Expect.within (Expect.Absolute 0.0001) (toFloat (7 - 3) / 7)
+        , test "Avon always get two games rest, perfectly compact" <|
             \_ ->
                 calculateTeamTournamentPreferenceScore
                     [ Game avonTwoGamesRest anyTeam
@@ -140,7 +241,7 @@ all =
                     , Game anyTeam avonTwoGamesRest
                     ]
                     0
-                    (AnalysedTeamFirstPass avonTwoGamesRest 0 3 0)
+                    (AnalysedTeamFirstPass avonTwoGamesRest 0 3 [ 3 ])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
         , test "Avon only play one game" <|
@@ -151,10 +252,10 @@ all =
                     , anyGame
                     ]
                     0
-                    (AnalysedTeamFirstPass avonTwoGamesRest 0 0 0)
+                    (AnalysedTeamFirstPass avonTwoGamesRest 0 0 [])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 1
-        , test "Avon never get two games rest" <|
+        , test "Avon never get two games rest, but good compaction" <|
             \_ ->
                 calculateTeamTournamentPreferenceScore
                     [ Game avonTwoGamesRest anyTeam
@@ -163,7 +264,7 @@ all =
                     , anyGame
                     ]
                     0
-                    (AnalysedTeamFirstPass avonTwoGamesRest 0 2 1)
+                    (AnalysedTeamFirstPass avonTwoGamesRest 0 2 [ 2 ])
                     |> .tournamentPreferenceScore
                     |> Expect.within (Expect.Absolute 0.0001) 0
         , test "Avon have one single game rest" <|
@@ -190,7 +291,7 @@ all =
                     ]
                     |> List.filter (\analysedTeam -> analysedTeam.team == avonTwoGamesRest)
                     |> List.head
-                    |> Maybe.map .singleGameBreaks
+                    |> Maybe.map (\aTeam -> singleGameBreaks aTeam.gameBreaks)
                     |> Maybe.withDefault -1
                     |> Expect.equal 1
         , test "Tournament preference score" <|
@@ -207,27 +308,23 @@ all =
                 ]
                     |> Expect.all
                         [ \games ->
-                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass castleFinishEarly 0 2 1)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass castleFinishEarly 0 2 [ 2 ])
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass batterseaStartLate 1 3 1)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass batterseaStartLate 1 3 [ 2 ])
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass avonTwoGamesRest 0 3 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass avonTwoGamesRest 0 3 [ 3 ])
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass claphamTwoGamesRest 1 1 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass claphamTwoGamesRest 1 1 [])
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
-                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass uluTwoGamesRest 2 2 0)
-                                |> .tournamentPreferenceScore
-                                |> Expect.within (Expect.Absolute 0.0001) 1
-                        , \games ->
-                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass avonTwoGamesRest 3 3 0)
+                            calculateTeamTournamentPreferenceScore games 0 (AnalysedTeamFirstPass uluTwoGamesRest 2 2 [])
                                 |> .tournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         , \games ->
@@ -272,7 +369,7 @@ castleFinishEarly =
 
 avonTwoGamesRest : Team
 avonTwoGamesRest =
-    Team "Avon" TwoGamesRest
+    Team "Avon" EvenlySpaced
 
 
 batterseaStartLate : Team
@@ -282,12 +379,12 @@ batterseaStartLate =
 
 uluTwoGamesRest : Team
 uluTwoGamesRest =
-    Team "Ulu" TwoGamesRest
+    Team "Ulu" EvenlySpaced
 
 
 claphamTwoGamesRest : Team
 claphamTwoGamesRest =
-    Team "Clapham" TwoGamesRest
+    Team "Clapham" EvenlySpaced
 
 
 anyTeam : Team
@@ -302,4 +399,4 @@ anyGame =
 
 team : String -> Team
 team name =
-    Team name TwoGamesRest
+    Team name EvenlySpaced

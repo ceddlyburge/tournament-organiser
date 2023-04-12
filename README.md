@@ -16,3 +16,11 @@ https://tournament-organiser.onrender.com/
 - [ ] Add an 'evenly spaced' team preference
 - [ ] Allow touch drag drop in the tweak view
 - [ ] Scroll the list while dragging off the screen in the tweak view
+- [ ] A page describing what each team option does (Evenly spaced, Start early etc)
+- [ ] Add more team options as they are requested
+
+## Tech roadmap
+
+- [ ] Add a test to round trip the model to / from json (this will help ensure that the model is saved to and loaded from local storage successfully)
+- [ ] Improve the GameOrderMetricsTests
+- [ ] Create a package for the johnson trotter permutations algorithm and then remove it.
