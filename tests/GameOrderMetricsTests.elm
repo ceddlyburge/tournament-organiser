@@ -2,7 +2,7 @@ module GameOrderMetricsTests exposing (all)
 
 import Expect
 import List
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestCompactionScore, calculateTwoGamesRestScore, optimiseAllPermutations, singleGameBreaks)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateEvenlySpacedWithTwoGamesRestScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestScore, optimiseAllPermutations, singleGameBreaks)
 import Test exposing (Test, describe, test)
 
 
@@ -164,7 +164,7 @@ all =
                 -- , anyGame
                 -- , Game anyTeam avonTwoGamesRest
                 -- ]
-                calculateTwoGamesRestCompactionScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 4 [ 3 ])
+                calculateEvenlySpacedWithTwoGamesRestScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 4 [ 3 ])
                     |> Expect.within (Expect.Absolute 0.0001) 1
         , test "Avon only play one game, so perfectly compact" <|
             \_ ->
@@ -172,7 +172,7 @@ all =
                 -- , anyGame
                 -- , anyGame
                 -- ]
-                calculateTwoGamesRestCompactionScore 1 3 (AnalysedTeamFirstPass avonTwoGamesRest 1 1 [])
+                calculateEvenlySpacedWithTwoGamesRestScore 1 3 (AnalysedTeamFirstPass avonTwoGamesRest 1 1 [])
                     |> Expect.within (Expect.Absolute 0.0001) 1
         , test "Avon better than perfect compaction" <|
             \_ ->
@@ -181,8 +181,8 @@ all =
                 -- , Game anyTeam avonTwoGamesRest
                 -- , anyGame
                 -- ]
-                calculateTwoGamesRestCompactionScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 3 [ 2 ])
-                    |> Expect.within (Expect.Absolute 0.0001) 1
+                calculateEvenlySpacedWithTwoGamesRestScore 2 4 (AnalysedTeamFirstPass avonTwoGamesRest 1 3 [ 2 ])
+                    |> Expect.within (Expect.Absolute 0.0001) 0
         , test "Avon evenly spaced" <|
             \_ ->
                 -- [ Game avonTwoGamesRest anyTeam
