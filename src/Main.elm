@@ -479,7 +479,7 @@ setGames games model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "URL Interceptor"
+    { title = "Tournament organiser"
     , body =
         [ div
             [ class "body stack stackSplitAfter2" ]
