@@ -10,7 +10,7 @@ import Html.Events exposing (onClick, onInput)
 import Json.Decode
 import Json.Encode
 import List.Extra
-import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, stringToTournamentPreference, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+import Optimisation.GameOrderMetrics exposing (AnalysedGame, Game, GameOrderMetrics, Team, TournamentPreference(..), calculateGameOrderMetrics, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, initialSortOrderForGame, optimiseAllPermutations, playing, stringToTournamentPreference, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 import Parser
 import Process
 import String exposing (fromInt)
@@ -356,7 +356,7 @@ update msg model =
                 games : List Game
                 games =
                     Maybe.map (\justGameOrderMetrics -> List.map .game justGameOrderMetrics.analysedGames) model.gameOrderMetrics
-                        |> Maybe.withDefault model.games
+                        |> Maybe.withDefault (model.games |> List.sortBy initialSortOrderForGame)
 
                 gameOrderMetrics : GameOrderMetrics
                 gameOrderMetrics =

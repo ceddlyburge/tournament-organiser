@@ -1,10 +1,10 @@
-module Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, GameOrderMetrics, IndexedTeam, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateEvenlySpacedWithTwoGamesRestScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestScore, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, optimiseAllPermutations, playing, singleGameBreaks, stringToTournamentPreference, tournamentPreferenceToString, vanillaGame, vanillaTeam)
+module Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, GameOrderMetrics, IndexedTeam, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateEvenlySpacedWithTwoGamesRestScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestScore, curtailWhenTeamsPlayingConsecutively, decodeGame, decodeGameOrderMetrics, decodeTeam, encodeGame, encodeGameOrderMetrics, encodeTeam, initialSortOrderForGame, nullObjectGameOrderMetrics, optimiseAllPermutations, optimiseCurtailedPermutations, playing, singleGameBreaks, stringToTournamentPreference, tournamentPreferenceToString, vanillaGame, vanillaTeam)
 
 import Array exposing (Array)
 import Json.Decode
 import Json.Encode
 import List.Extra
-import Optimisation.Permutations exposing (permutations2)
+import Optimisation.Permutations exposing (permutations)
 
 
 type TournamentPreference
@@ -105,6 +105,8 @@ type alias GameOrderMetrics =
     , lowestTournamentPreferenceScore : Float
     , meanTournamentPreferenceScore : Float
     , highestTournamentPreferenceScore : Float
+    , weightedLowestTournamentPreferenceScore : Float
+    , weightedMeanTournamentPreferenceScore : Float
     }
 
 
@@ -124,13 +126,15 @@ decodeGameOrderMetrics : Json.Decode.Decoder (Maybe GameOrderMetrics)
 decodeGameOrderMetrics =
     Json.Decode.oneOf
         [ Json.Decode.null Nothing
-        , Json.Decode.map6 GameOrderMetrics
+        , Json.Decode.map8 GameOrderMetrics
             (Json.Decode.field "analysedGames" (Json.Decode.list decodeAnalysedGame))
             (Json.Decode.field "analysedTeams" (Json.Decode.list decodeAnalysedTeam))
             (Json.Decode.field "occurencesOfTeamsPlayingConsecutiveGames" Json.Decode.int)
             (Json.Decode.field "lowestTournamentPreferenceScore" Json.Decode.float)
             (Json.Decode.field "meanTournamentPreferenceScore" Json.Decode.float)
             (Json.Decode.field "highestTournamentPreferenceScore" Json.Decode.float)
+            (Json.Decode.field "weightedLowestTournamentPreferenceScore" Json.Decode.float)
+            (Json.Decode.field "weightedMeanTournamentPreferenceScore" Json.Decode.float)
             |> Json.Decode.map Just
         ]
 
@@ -246,7 +250,7 @@ optimiseAllPermutations games maybeGameOrderMetrics =
         curtailedGameOrderMetrics =
             optimiseCurtailedPermutations curtailWhenTeamsPlayingConsecutively games initialGameOrderMetrics
     in
-    if curtailedGameOrderMetrics == nullObjectGameOrderMetrics then
+    if curtailedGameOrderMetrics == initialGameOrderMetrics then
         optimiseCurtailedPermutations neverCurtail games initialGameOrderMetrics
 
     else
@@ -261,7 +265,7 @@ optimiseCurtailedPermutations curtail games gameOrderMetrics =
         -- find them. Less memory usage. And probably a little bit faster.
         gameOrders : List (List Game)
         gameOrders =
-            permutations2 1000000 curtail games
+            permutations 1000000 curtail games
     in
     List.foldr
         (\gameOrder currentBestGameOrderMetrics ->
@@ -279,6 +283,8 @@ nullObjectGameOrderMetrics =
     , lowestTournamentPreferenceScore = 0
     , meanTournamentPreferenceScore = 0
     , highestTournamentPreferenceScore = 0
+    , weightedLowestTournamentPreferenceScore = 0
+    , weightedMeanTournamentPreferenceScore = 0
     }
 
 
@@ -298,26 +304,26 @@ bestGameOrderMetrics gameOrderMetrics1 gameOrderMetrics2 =
         gameOrderMetrics2
 
     else if
-        gameOrderMetrics1.lowestTournamentPreferenceScore
-            > gameOrderMetrics2.lowestTournamentPreferenceScore
+        gameOrderMetrics1.weightedLowestTournamentPreferenceScore
+            > gameOrderMetrics2.weightedLowestTournamentPreferenceScore
     then
         gameOrderMetrics1
 
     else if
-        gameOrderMetrics2.lowestTournamentPreferenceScore
-            > gameOrderMetrics1.lowestTournamentPreferenceScore
+        gameOrderMetrics2.weightedLowestTournamentPreferenceScore
+            > gameOrderMetrics1.weightedLowestTournamentPreferenceScore
     then
         gameOrderMetrics2
 
     else if
-        gameOrderMetrics1.meanTournamentPreferenceScore
-            > gameOrderMetrics2.meanTournamentPreferenceScore
+        gameOrderMetrics1.weightedMeanTournamentPreferenceScore
+            > gameOrderMetrics2.weightedMeanTournamentPreferenceScore
     then
         gameOrderMetrics1
 
     else if
-        gameOrderMetrics2.meanTournamentPreferenceScore
-            > gameOrderMetrics1.meanTournamentPreferenceScore
+        gameOrderMetrics2.weightedMeanTournamentPreferenceScore
+            > gameOrderMetrics1.weightedMeanTournamentPreferenceScore
     then
         gameOrderMetrics2
 
@@ -331,12 +337,65 @@ bestGameOrderMetrics gameOrderMetrics1 gameOrderMetrics2 =
         gameOrderMetrics2
 
 
+tournamentPreferenceMeanWeight : TournamentPreference -> Float
+tournamentPreferenceMeanWeight tournamentPreference =
+    -- This makes very little difference, as game orders are initially
+    -- compared on the minimum
+    case tournamentPreference of
+        StartLate ->
+            0.5
+
+        FinishEarly ->
+            0.5
+
+        EvenlySpaced ->
+            1
+
+        NoPreference ->
+            1
+
+
+tournamentPreferenceMinWeight : TournamentPreference -> Float
+tournamentPreferenceMinWeight tournamentPreference =
+    case tournamentPreference of
+        StartLate ->
+            0.5
+
+        FinishEarly ->
+            0.5
+
+        EvenlySpaced ->
+            1
+
+        NoPreference ->
+            1
+
+
+
+-- order the games in a very roughly optimised order, hopefully so that we need to
+-- analyse less permutations before finding a good result
+
+
+initialSortOrderForGame : Game -> Int
+initialSortOrderForGame game =
+    if game.homeTeam.tournamentPreference == FinishEarly || game.awayTeam.tournamentPreference == FinishEarly then
+        -1
+
+    else if game.homeTeam.tournamentPreference == StartLate || game.awayTeam.tournamentPreference == StartLate then
+        1
+
+    else
+        0
+
+
 calculateGameOrderMetrics : List Game -> GameOrderMetrics
 calculateGameOrderMetrics games =
     let
         analysedGames : Array AnalysedGame
         analysedGames =
-            analyseGames (Array.fromList games)
+            games
+                |> Array.fromList
+                |> analyseGames
 
         occurencesOfTeamsPlayingConsecutiveGames : Int
         occurencesOfTeamsPlayingConsecutiveGames =
@@ -354,9 +413,23 @@ calculateGameOrderMetrics games =
         lowestTournamentPreferenceScore =
             List.map .tournamentPreferenceScore analysedTeams |> List.minimum |> Maybe.withDefault 0
 
+        weightedLowestTournamentPreferenceScore : Float
+        weightedLowestTournamentPreferenceScore =
+            List.map (\analysedTeam -> analysedTeam.tournamentPreferenceScore * tournamentPreferenceMinWeight analysedTeam.team.tournamentPreference) analysedTeams |> List.minimum |> Maybe.withDefault 0
+
         meanTournamentPreferenceScore : Float
         meanTournamentPreferenceScore =
-            List.map .tournamentPreferenceScore analysedTeams |> List.sum |> (\sum -> sum / toFloat (List.length analysedTeams))
+            (List.map .tournamentPreferenceScore analysedTeams |> List.sum)
+                / toFloat (List.length analysedTeams)
+
+        weightedMeanTournamentPreferenceScore : Float
+        weightedMeanTournamentPreferenceScore =
+            (List.map (\analysedTeam -> analysedTeam.tournamentPreferenceScore * tournamentPreferenceMeanWeight analysedTeam.team.tournamentPreference) analysedTeams
+                |> List.sum
+            )
+                / (List.map (\analysedTeam -> tournamentPreferenceMeanWeight analysedTeam.team.tournamentPreference) analysedTeams
+                    |> List.sum
+                  )
 
         highestTournamentPreferenceScore : Float
         highestTournamentPreferenceScore =
@@ -368,6 +441,8 @@ calculateGameOrderMetrics games =
     , lowestTournamentPreferenceScore = lowestTournamentPreferenceScore
     , meanTournamentPreferenceScore = meanTournamentPreferenceScore
     , highestTournamentPreferenceScore = highestTournamentPreferenceScore
+    , weightedLowestTournamentPreferenceScore = weightedLowestTournamentPreferenceScore
+    , weightedMeanTournamentPreferenceScore = weightedMeanTournamentPreferenceScore
     }
 
 
