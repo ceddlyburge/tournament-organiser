@@ -312,8 +312,12 @@ p,h1,h2,h3,h4,h5,h6,ul,ol  {
   inline-size: 100%;
 }
   
-main p, h1, h2 {
+main p, h1, h2, h3 {
   text-align: center;
+}
+
+.teamOptionsExplanationView p, .teamsView p {
+  text-align: justify;
 }
 
 footer p {

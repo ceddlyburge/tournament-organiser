@@ -4,7 +4,7 @@ import Browser
 import Browser.Navigation
 import DnDList
 import GameParser
-import Html exposing (Html, a, button, datalist, div, footer, h1, h2, header, input, li, main_, nav, option, p, select, span, strong, sup, text, ul)
+import Html exposing (Html, a, button, datalist, div, footer, h1, h2, h3, header, input, li, main_, nav, option, p, select, span, strong, sup, text, ul)
 import Html.Attributes exposing (class, disabled, href, id, list, placeholder, selected, title, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode
@@ -78,6 +78,7 @@ type UiState
     | AddGameView
     | EditGameView
     | TeamsView
+    | TeamOptionsExplanationView
     | OptimiseView
     | TweakView
 
@@ -423,6 +424,9 @@ update msg model =
             if url.fragment == Just "/teams" && not (List.isEmpty model.games) then
                 ( { model | uiState = TeamsView }, Cmd.none )
 
+            else if url.fragment == Just "/options-explanation" && not (List.isEmpty model.games) then
+                ( { model | uiState = TeamOptionsExplanationView }, Cmd.none )
+
             else if url.fragment == Just "/optimise" && not (List.isEmpty model.games) then
                 ( { model | uiState = OptimiseView }, Cmd.none )
 
@@ -513,7 +517,8 @@ view model =
                     ]
                 ]
             , main_
-                [ class "center stack" ]
+                [ class "center stack"
+                , class (uiStateToString model.uiState) ]
                 (stateView model)
             , footer
                 []
@@ -563,6 +568,29 @@ view model =
         ]
     }
 
+uiStateToString : UiState -> String
+uiStateToString uiState =
+    case uiState of
+        GamesView ->
+            "gamesView"
+
+        AddGameView ->
+            "addGameView"
+
+        EditGameView ->
+            "editGameView"
+
+        TeamsView ->
+            "teamsView"
+
+        TeamOptionsExplanationView ->
+            "teamOptionsExplanationView"
+
+        OptimiseView ->
+            "optimiseView"
+
+        TweakView ->
+            "tweakView"
 
 stateView : Model -> List (Html Msg)
 stateView model =
@@ -578,6 +606,9 @@ stateView model =
 
         TeamsView ->
             teamsView model
+
+        TeamOptionsExplanationView ->
+            teamOptionsExplanationView
 
         OptimiseView ->
             optimiseView model
@@ -723,7 +754,10 @@ teamsDataList model =
 
 teamsView : Model -> List (Html Msg)
 teamsView model =
-    [ p [] [ text "Choose team preferences here. The optimiser will always try to make sure teams don't play consecutively" ]
+    [ p 
+        [] 
+        [ text "Choose the team preferences. The optimiser will always try to make sure no teams play back to back games, "
+          , a [ href "/#/options-explanation" ] [ text "more details here." ] ]
     , ul
         [ class "stack stack-small" ]
         (List.map teamView model.teams)
@@ -759,6 +793,20 @@ tournamentPreferenceOption team tournamentPreference =
     option
         [ selected (team.tournamentPreference == tournamentPreference) ]
         [ text <| tournamentPreferenceToString tournamentPreference ]
+
+
+teamOptionsExplanationView : List (Html Msg)
+teamOptionsExplanationView =
+    [ p [] [ text "The optimiser will always try and make sure no team plays back to back games. After that, it will optimise for the team prefences." ]
+    , h3 [] [ text "Evenly Spaced" ]
+    , p [] [ text "Evenly Spaced tries to ensure that the team always gets at least two games rest between games, and that the rest between games is consistent. For example, it is annoying to have two games close together and then have a long wait until the next one. This is the default (and usually best) option." ]
+    , h3 [] [ text "Start Late" ]
+    , p [] [ text "Start Late tries to ensure that the first game for a team is as late as possible. This option is harder to accomodate, and can de-optimise other teams, so it should be used sparingly (or not at all). Because it is hard to accomodate, it has a lower weight than other preferences." ]
+    , h3 [] [ text "Finish Early" ]
+    , p [] [ text "Finish Early tries to ensure that the last game for a team is as early as possible. For example, some teams with children need to get back as early as possible and get to bed. This option is harder to accomodate, and can de-optimise other teams, so it should be used sparingly (or not at all). Because it is hard to accomodate, it has a lower weight than other preferences." ]
+    , h3 [] [ text "No preference" ]
+    , p [] [ text "No preference will ignore the team when optimising (apart from making sure that they don't play back to back games)." ]
+    ]
 
 
 optimiseView : Model -> List (Html Msg)
