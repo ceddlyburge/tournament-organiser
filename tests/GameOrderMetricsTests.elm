@@ -3,7 +3,7 @@ module GameOrderMetricsTests exposing (all)
 import Expect
 import List
 import Optimisation.GameOrderMetrics exposing (AnalysedGame, AnalysedTeam, AnalysedTeamFirstPass, Game, Team, TournamentPreference(..), analyseTeams, calculateEvenlySpacedScore, calculateEvenlySpacedWithTwoGamesRestScore, calculateGameOrderMetrics, calculateTeamTournamentPreferenceScore, calculateTwoGamesRestScore, optimiseAllPermutations, singleGameBreaks)
-import Test exposing (Test, describe, skip, test)
+import Test exposing (Test, describe, test)
 
 
 all : Test
@@ -331,35 +331,34 @@ all =
                             (calculateGameOrderMetrics games).lowestTournamentPreferenceScore
                                 |> Expect.within (Expect.Absolute 0.0001) 1
                         ]
-        , skip <|
-            test "Repond with something when permutations get out of hand and curtailment isn't possible" <|
-                \_ ->
-                    optimiseAllPermutations
-                        [ Game castleFinishEarly avonTwoGamesRest
-                        , Game batterseaStartLate claphamTwoGamesRest
-                        , Game claphamTwoGamesRest castleFinishEarly
-                        , Game batterseaStartLate avonTwoGamesRest
-                        , Game castleFinishEarly avonTwoGamesRest
-                        , Game batterseaStartLate claphamTwoGamesRest
-                        , Game claphamTwoGamesRest castleFinishEarly
-                        , Game batterseaStartLate avonTwoGamesRest
-                        , Game castleFinishEarly avonTwoGamesRest
-                        , Game batterseaStartLate claphamTwoGamesRest
-                        , Game claphamTwoGamesRest castleFinishEarly
-                        , Game batterseaStartLate avonTwoGamesRest
-                        , Game castleFinishEarly avonTwoGamesRest
-                        , Game batterseaStartLate claphamTwoGamesRest
-                        , Game claphamTwoGamesRest castleFinishEarly
-                        , Game batterseaStartLate avonTwoGamesRest
-                        , Game castleFinishEarly avonTwoGamesRest
-                        , Game batterseaStartLate claphamTwoGamesRest
-                        , Game claphamTwoGamesRest castleFinishEarly
-                        , Game batterseaStartLate avonTwoGamesRest
-                        ]
-                        Nothing
-                        |> .analysedGames
-                        |> List.length
-                        |> Expect.equal 20
+        , test "Repond with something when permutations get out of hand and curtailment isn't possible" <|
+            \_ ->
+                optimiseAllPermutations
+                    [ Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    , Game castleFinishEarly avonTwoGamesRest
+                    , Game batterseaStartLate claphamTwoGamesRest
+                    , Game claphamTwoGamesRest castleFinishEarly
+                    , Game batterseaStartLate avonTwoGamesRest
+                    ]
+                    Nothing
+                    |> .analysedGames
+                    |> List.length
+                    |> Expect.equal 20
         ]
 
 

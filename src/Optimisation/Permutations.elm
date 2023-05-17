@@ -1,4 +1,4 @@
-module Optimisation.Permutations exposing (permutations, permutationsInternal)
+module Optimisation.Permutations exposing (permutations)
 
 import List.Extra
 

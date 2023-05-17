@@ -1,13 +1,13 @@
 module PermutationsTests exposing (permutationsTest)
 
 -- import Main exposing (exampleGames)
+-- import Array
+-- import Json.Encode exposing (list)
+-- import List.Extra
+-- import Optimisation.GameOrderMetrics exposing (Game, Team, TournamentPreference(..), curtailWhenTeamsPlayingConsecutively, encodeGame, encodeGameOrderMetrics, initialSortOrderForGame, nullObjectGameOrderMetrics, optimiseCurtailedPermutations)
 
-import Array
 import Expect
-import Json.Encode exposing (list)
-import List.Extra
-import Optimisation.GameOrderMetrics exposing (Game, Team, TournamentPreference(..), curtailWhenTeamsPlayingConsecutively, encodeGame, encodeGameOrderMetrics, initialSortOrderForGame, nullObjectGameOrderMetrics, optimiseCurtailedPermutations)
-import Optimisation.Permutations exposing (permutations, permutationsInternal)
+import Optimisation.Permutations exposing (permutations)
 import Test exposing (Test, describe, test)
 
 
@@ -46,44 +46,45 @@ permutationsTest =
         --             |> Json.Encode.list (Json.Encode.list encodeGame)
         --             |> Json.Encode.encode 2
         --             |> Expect.equal ""
-        , test "Curtail example games" <|
-            \_ ->
-                let
-                    sortedGames =
-                        exampleGames
-                            |> List.sortBy initialSortOrderForGame
-                in
-                optimiseCurtailedPermutations curtailWhenTeamsPlayingConsecutively sortedGames nullObjectGameOrderMetrics
-                    |> encodeGameOrderMetrics
-                    |> Json.Encode.encode 2
-                    |> Expect.equal ""
+        -- , test "Curtail example games" <|
+        --     \_ ->
+        --         let
+        --             sortedGames =
+        --                 exampleGames
+        --                     |> List.sortBy initialSortOrderForGame
+        --         in
+        --         optimiseCurtailedPermutations curtailWhenTeamsPlayingConsecutively sortedGames nullObjectGameOrderMetrics
+        --             |> encodeGameOrderMetrics
+        --             |> Json.Encode.encode 2
+        --             |> Expect.equal ""
         ]
 
 
-exampleGames : List Game
-exampleGames =
-    [ Game (Team "ULU" EvenlySpaced) (Team "Braintree" EvenlySpaced)
-    , Game (Team "ULU" EvenlySpaced) (Team "Surrey" EvenlySpaced)
-    , Game (Team "ULU" EvenlySpaced) (Team "VKC" EvenlySpaced)
-    , Game (Team "ULU" EvenlySpaced) (Team "St Albans" FinishEarly)
-    , Game (Team "ULU" EvenlySpaced) (Team "East End" EvenlySpaced)
-    , Game (Team "ULU" EvenlySpaced) (Team "Castle" EvenlySpaced)
-    , Game (Team "Braintree" EvenlySpaced) (Team "Surrey" EvenlySpaced)
-    , Game (Team "Braintree" EvenlySpaced) (Team "VKC" EvenlySpaced)
-    , Game (Team "Braintree" EvenlySpaced) (Team "St Albans" FinishEarly)
-    , Game (Team "Braintree" EvenlySpaced) (Team "East End" EvenlySpaced)
-    , Game (Team "Braintree" EvenlySpaced) (Team "Castle" EvenlySpaced)
-    , Game (Team "Surrey" EvenlySpaced) (Team "VKC" EvenlySpaced)
-    , Game (Team "Surrey" EvenlySpaced) (Team "St Albans" FinishEarly)
-    , Game (Team "Surrey" EvenlySpaced) (Team "East End" EvenlySpaced)
-    , Game (Team "Surrey" EvenlySpaced) (Team "Castle" EvenlySpaced)
-    , Game (Team "VKC" EvenlySpaced) (Team "St Albans" FinishEarly)
-    , Game (Team "VKC" EvenlySpaced) (Team "East End" EvenlySpaced)
-    , Game (Team "VKC" EvenlySpaced) (Team "Castle" EvenlySpaced)
-    , Game (Team "St Albans" FinishEarly) (Team "East End" EvenlySpaced)
-    , Game (Team "St Albans" FinishEarly) (Team "Castle" EvenlySpaced)
-    , Game (Team "East End" EvenlySpaced) (Team "Castle" EvenlySpaced)
-    ]
+
+-- exampleGames : List Game
+-- exampleGames =
+--     [ Game (Team "ULU" EvenlySpaced) (Team "Braintree" EvenlySpaced)
+--     , Game (Team "ULU" EvenlySpaced) (Team "Surrey" EvenlySpaced)
+--     , Game (Team "ULU" EvenlySpaced) (Team "VKC" EvenlySpaced)
+--     , Game (Team "ULU" EvenlySpaced) (Team "St Albans" FinishEarly)
+--     , Game (Team "ULU" EvenlySpaced) (Team "East End" EvenlySpaced)
+--     , Game (Team "ULU" EvenlySpaced) (Team "Castle" EvenlySpaced)
+--     , Game (Team "Braintree" EvenlySpaced) (Team "Surrey" EvenlySpaced)
+--     , Game (Team "Braintree" EvenlySpaced) (Team "VKC" EvenlySpaced)
+--     , Game (Team "Braintree" EvenlySpaced) (Team "St Albans" FinishEarly)
+--     , Game (Team "Braintree" EvenlySpaced) (Team "East End" EvenlySpaced)
+--     , Game (Team "Braintree" EvenlySpaced) (Team "Castle" EvenlySpaced)
+--     , Game (Team "Surrey" EvenlySpaced) (Team "VKC" EvenlySpaced)
+--     , Game (Team "Surrey" EvenlySpaced) (Team "St Albans" FinishEarly)
+--     , Game (Team "Surrey" EvenlySpaced) (Team "East End" EvenlySpaced)
+--     , Game (Team "Surrey" EvenlySpaced) (Team "Castle" EvenlySpaced)
+--     , Game (Team "VKC" EvenlySpaced) (Team "St Albans" FinishEarly)
+--     , Game (Team "VKC" EvenlySpaced) (Team "East End" EvenlySpaced)
+--     , Game (Team "VKC" EvenlySpaced) (Team "Castle" EvenlySpaced)
+--     , Game (Team "St Albans" FinishEarly) (Team "East End" EvenlySpaced)
+--     , Game (Team "St Albans" FinishEarly) (Team "Castle" EvenlySpaced)
+--     , Game (Team "East End" EvenlySpaced) (Team "Castle" EvenlySpaced)
+--     ]
 
 
 curtailAscending : Int -> Int -> Bool
@@ -91,9 +92,10 @@ curtailAscending v1 v2 =
     v1 < v2
 
 
-curtailAscendingOrEqual : Int -> Int -> Bool
-curtailAscendingOrEqual v1 v2 =
-    v1 <= v2
+
+-- curtailAscendingOrEqual : Int -> Int -> Bool
+-- curtailAscendingOrEqual v1 v2 =
+--     v1 <= v2
 
 
 curtailConsecutiveNumbers : Int -> Int -> Bool
@@ -106,6 +108,7 @@ neverCurtail _ _ =
     False
 
 
-alwaysCurtail : a -> a -> Bool
-alwaysCurtail _ _ =
-    True
+
+-- alwaysCurtail : a -> a -> Bool
+-- alwaysCurtail _ _ =
+--     True

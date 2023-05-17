@@ -518,7 +518,8 @@ view model =
                 ]
             , main_
                 [ class "center stack"
-                , class (uiStateToString model.uiState) ]
+                , class (uiStateToString model.uiState)
+                ]
                 (stateView model)
             , footer
                 []
@@ -568,6 +569,7 @@ view model =
         ]
     }
 
+
 uiStateToString : UiState -> String
 uiStateToString uiState =
     case uiState of
@@ -591,6 +593,7 @@ uiStateToString uiState =
 
         TweakView ->
             "tweakView"
+
 
 stateView : Model -> List (Html Msg)
 stateView model =
@@ -754,10 +757,11 @@ teamsDataList model =
 
 teamsView : Model -> List (Html Msg)
 teamsView model =
-    [ p 
-        [] 
+    [ p
+        []
         [ text "Choose the team preferences. The optimiser will always try to make sure no teams play back to back games, "
-          , a [ href "/#/options-explanation" ] [ text "more details here." ] ]
+        , a [ href "/#/options-explanation" ] [ text "more details here." ]
+        ]
     , ul
         [ class "stack stack-small" ]
         (List.map teamView model.teams)
