@@ -265,7 +265,7 @@ optimiseCurtailedPermutations curtail games gameOrderMetrics =
         -- find them. Less memory usage. And probably a little bit faster.
         gameOrders : List (List Game)
         gameOrders =
-            permutations 1000000 curtail games
+            permutations 500000 curtail games
     in
     List.foldr
         (\gameOrder currentBestGameOrderMetrics ->
