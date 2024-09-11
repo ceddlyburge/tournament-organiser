@@ -29,4 +29,16 @@ window.addEventListener("paste", (event) => {
   event.preventDefault();
 });
 
+main.ports.releasePointerCapture.subscribe((event) => {
+  event.target.releasePointerCapture(event.pointerId);
+});
+
+window.addEventListener("pointermove", (event) => {
+  main.ports.onPointerMove.send(event);
+});
+
+window.addEventListener("pointerup", (event) => {
+  main.ports.onPointerUp.send(event);
+});
+
 serviceWorker.register();

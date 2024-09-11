@@ -52,6 +52,19 @@ subscriptions model =
 
 
 
+---- Ports for drag and drop ----
+
+
+port onPointerMove : (Json.Encode.Value -> msg) -> Sub msg
+
+
+port onPointerUp : (Json.Encode.Value -> msg) -> Sub msg
+
+
+port releasePointerCapture : Json.Encode.Value -> Cmd msg
+
+
+
 ---- Drag and drop ----
 
 
@@ -66,7 +79,7 @@ config =
 
 system : DnDList.System AnalysedGame Msg
 system =
-    DnDList.create config DndMsg
+    DnDList.createWithTouch config DndMsg onPointerMove onPointerUp releasePointerCapture
 
 
 
@@ -987,7 +1000,7 @@ tweakView model =
         [ text "Copy to clipboard" ]
     , p
         []
-        [ text "Drag the games to reorder manually (currently only works with pointing devices, and not touch screens)" ]
+        [ text "Drag the games to reorder manually" ]
 
     -- it would be good to enforce that tweakedGameOrderMetrics exists using the type system,
     -- by putting it on the TweakView custom type, but fiddly to achieve with the Dnd package,
@@ -1012,6 +1025,7 @@ tweakedGameView dnd index game =
             if dragIndex /= index then
                 div
                     (id gameId
+                        :: Html.Attributes.style "touch-action" "none"
                         :: system.dropEvents index gameId
                     )
                     [ span
@@ -1021,7 +1035,7 @@ tweakedGameView dnd index game =
 
             else
                 div
-                    [ id gameId, class "drag-underlay" ]
+                    [ id gameId, class "drag-underlay", Html.Attributes.style "touch-action" "none" ]
                     [ span
                         [ class "game" ]
                         (analysedGameView game)
@@ -1029,7 +1043,7 @@ tweakedGameView dnd index game =
 
         Nothing ->
             div
-                (id gameId :: system.dragEvents index gameId)
+                (id gameId :: Html.Attributes.style "touch-action" "none" :: system.dragEvents index gameId)
                 [ span
                     [ class "game" ]
                     (analysedGameView game)
