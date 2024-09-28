@@ -13,7 +13,6 @@ https://tournament-organiser.onrender.com/
 
 ## Roadmap
 
-- [ ] Allow touch drag drop in the tweak view
 - [ ] Scroll the list while dragging off the screen in the tweak view
 - [ ] Add more team options as they are requested
 
