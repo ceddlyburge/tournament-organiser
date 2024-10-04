@@ -39,19 +39,19 @@ jobs:
         continue-on-error: true
 
       # Re-use node_modules between runs until package.json or package-lock.json changes.
-      # - name: Cache node_modules
-      #   id: cache-node_modules
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: node_modules
-      #     key: node_modules-${{ hashFiles('package.json', 'package-lock.json') }}
+      - name: Cache node_modules
+        id: cache-node_modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('package.json', 'package-lock.json') }}
 
-      # - name: Cache node modules measurement
-      #   uses: green-coding-berlin/eco-ci-energy-estimation@v3
-      #   with:
-      #     task: get-measurement
-      #     label: "Cache node modules"
-      #   continue-on-error: true
+      - name: Cache node modules measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "Cache node modules"
+        continue-on-error: true
 
       # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
       # review/elm.json changes. The Elm compiler saves downloaded Elm packages
