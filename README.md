@@ -1,5 +1,7 @@
 # Tournament organiser
 
+<a href="https://metrics.green-coding.io/ci.html?repo=ceddlyburge/tournament-organiser&amp;branch=2/merge&amp;workflow=51433914"><img src="https://api.green-coding.io/v1/ci/badge/get?repo=ceddlyburge/tournament-organiser&amp;branch=2/merge&amp;workflow=51433914"></a>
+
 Tournament organiser is a website that makes it easy to schedule games in a tournament.
 
 https://tournament-organiser.onrender.com/
