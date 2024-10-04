@@ -24,7 +24,6 @@ jobs:
         with:
           task: get-measurement
           label: "Repo checkout"
-          pr-comment: true
         continue-on-error: true
 
       - uses: actions/setup-node@v3
@@ -37,7 +36,6 @@ jobs:
         with:
           task: get-measurement
           label: "Setup node"
-          pr-comment: true
         continue-on-error: true
 
       # Re-use node_modules between runs until package.json or package-lock.json changes.
@@ -53,7 +51,6 @@ jobs:
       #   with:
       #     task: get-measurement
       #     label: "Cache node modules"
-      #     pr-comment: true
       #   continue-on-error: true
 
       # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
@@ -70,7 +67,6 @@ jobs:
       #   with:
       #     task: get-measurement
       #     label: "Cache .elm"
-      #     pr-comment: true
       #   continue-on-error: true
 
       - name: npm i
@@ -81,7 +77,6 @@ jobs:
         with:
           task: get-measurement
           label: "npm i"
-          pr-comment: true
         continue-on-error: true
 
       - name: build
@@ -92,11 +87,11 @@ jobs:
         with:
           task: get-measurement
           label: "build"
-          pr-comment: true
         continue-on-error: true
 
       - name: Show Energy Results
         uses: green-coding-berlin/eco-ci-energy-estimation@v3
         with:
           task: display-results
+          pr-comment: true
         continue-on-error: true
