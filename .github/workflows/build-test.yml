@@ -53,8 +53,8 @@ jobs:
         continue-on-error: true
 
       # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
-      review/elm.json changes. The Elm compiler saves downloaded Elm packages
-      to ~/.elm.
+      # review/elm.json changes. The Elm compiler saves downloaded Elm packages
+      # to ~/.elm.
       - name: Cache ~/.elm
         uses: actions/cache@v3
         with:
