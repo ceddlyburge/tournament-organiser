@@ -53,20 +53,20 @@ jobs:
         continue-on-error: true
 
       # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
-      # review/elm.json changes. The Elm compiler saves downloaded Elm packages
-      # to ~/.elm.
-      # - name: Cache ~/.elm
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/.elm
-      #     key: elm-${{ hashFiles('elm.json', 'review/elm.json') }}
+      review/elm.json changes. The Elm compiler saves downloaded Elm packages
+      to ~/.elm.
+      - name: Cache ~/.elm
+        uses: actions/cache@v3
+        with:
+          path: ~/.elm
+          key: elm-${{ hashFiles('elm.json', 'review/elm.json') }}
 
-      # - name: Cache .elm measurement
-      #   uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
-      #   with:
-      #     task: get-measurement
-      #     label: "Cache .elm"
-      #   continue-on-error: true
+      - name: Cache .elm measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
+        with:
+          task: get-measurement
+          label: "Cache .elm"
+        continue-on-error: true
 
       - name: npm i
         run: npm i
