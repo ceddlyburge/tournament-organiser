@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Initialize energy estimation
-        uses: green-coding-berlin/eco-ci-energy-estimation@v4
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
         with:
           task: start-measurement
         continue-on-error: true
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Checkout repo measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v4
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
         with:
           task: get-measurement
           label: "Repo checkout"
@@ -31,7 +31,7 @@ jobs:
           node-version: 14.x
 
       - name: Setup node measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v4
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
         with:
           task: get-measurement
           label: "Setup node"
@@ -46,7 +46,7 @@ jobs:
       #     key: node_modules-${{ hashFiles('package.json', 'package-lock.json') }}
 
       # - name: Cache node modules measurement
-      #   uses: green-coding-berlin/eco-ci-energy-estimation@v4
+      #   uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
       #   with:
       #     task: get-measurement
       #     label: "Cache node modules"
@@ -62,7 +62,7 @@ jobs:
       #     key: elm-${{ hashFiles('elm.json', 'review/elm.json') }}
 
       # - name: Cache .elm measurement
-      #   uses: green-coding-berlin/eco-ci-energy-estimation@v4
+      #   uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
       #   with:
       #     task: get-measurement
       #     label: "Cache .elm"
@@ -72,7 +72,7 @@ jobs:
         run: npm i
 
       - name: npm i measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v4
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
         with:
           task: get-measurement
           label: "npm i"
@@ -82,14 +82,14 @@ jobs:
         run: npm run check-and-build
 
       - name: build measurement
-        uses: green-coding-berlin/eco-ci-energy-estimation@v4
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
         with:
           task: get-measurement
           label: "build"
         continue-on-error: true
 
       - name: Show Energy Results
-        uses: green-coding-berlin/eco-ci-energy-estimation@v4
+        uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
         with:
           task: display-results
           pr-comment: true
