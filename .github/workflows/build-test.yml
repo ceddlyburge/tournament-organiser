@@ -11,12 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Initialize energy estimation
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: start-measurement
+        continue-on-error: true
+
       - uses: actions/checkout@v3
+
+      - name: Checkout repo measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "Repo checkout"
+        continue-on-error: true
 
       - uses: actions/setup-node@v3
         with:
-          # Choose your Node.js version here:
           node-version: 14.x
+
+      - name: Setup node measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "Setup node"
+        continue-on-error: true
 
       # Re-use node_modules between runs until package.json or package-lock.json changes.
       - name: Cache node_modules
@@ -25,6 +44,13 @@ jobs:
         with:
           path: node_modules
           key: node_modules-${{ hashFiles('package.json', 'package-lock.json') }}
+
+      - name: Cache node modules measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "Cache node modules"
+        continue-on-error: true
 
       # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
       # review/elm.json changes. The Elm compiler saves downloaded Elm packages
@@ -35,8 +61,36 @@ jobs:
           path: ~/.elm
           key: elm-${{ hashFiles('elm.json', 'review/elm.json') }}
 
+      - name: Cache .elm measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "Cache .elm"
+        continue-on-error: true
+
       - name: npm i
         run: npm i
 
+      - name: npm i measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "npm i"
+        continue-on-error: true
+
       - name: build
         run: npm run check-and-build
+
+      - name: build measurement
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: get-measurement
+          label: "build"
+        continue-on-error: true
+
+      - name: Show Energy Results
+        uses: green-coding-berlin/eco-ci-energy-estimation@v3
+        with:
+          task: display-results
+          pr-comment: true
+        continue-on-error: true
