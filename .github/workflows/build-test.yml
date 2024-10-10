@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 16
 
       - name: Setup node measurement
         uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
