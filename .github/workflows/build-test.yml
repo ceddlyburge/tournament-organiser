@@ -17,7 +17,7 @@ jobs:
           task: start-measurement
         continue-on-error: true
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Checkout repo measurement
         uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
@@ -26,9 +26,9 @@ jobs:
           label: "Repo checkout"
         continue-on-error: true
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14.x
+          node-version: 20
 
       - name: Setup node measurement
         uses: green-coding-berlin/eco-ci-energy-estimation@v4.0-rc3
@@ -40,7 +40,7 @@ jobs:
       # Re-use node_modules between runs until package.json or package-lock.json changes.
       - name: Cache node_modules
         id: cache-node_modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: node_modules-${{ hashFiles('package.json', 'package-lock.json') }}
@@ -56,7 +56,7 @@ jobs:
       # review/elm.json changes. The Elm compiler saves downloaded Elm packages
       # to ~/.elm.
       - name: Cache ~/.elm
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.elm
           key: elm-${{ hashFiles('elm.json', 'review/elm.json') }}
