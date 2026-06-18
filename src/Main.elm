@@ -536,8 +536,8 @@ view model =
                 (stateView model)
             , footer
                 []
-                [ p 
-                    [] 
+                [ p
+                    []
                     [ a [ href "https://github.com/ceddlyburge/tournament-organiser" ] [ text "Code on GitHub" ] ]
                 , p
                     []
