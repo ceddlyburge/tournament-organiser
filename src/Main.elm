@@ -538,7 +538,9 @@ view model =
                 []
                 [ p
                     []
-                    [ a [ href "https://github.com/ceddlyburge/tournament-organiser" ] [ text "Code on GitHub" ] ]
+                    [ span []
+                        [ a [ href "https://github.com/ceddlyburge/tournament-organiser" ] [ text "Code on GitHub" ] ]
+                    ]
                 , p
                     []
                     [ span
