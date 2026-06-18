@@ -536,7 +536,10 @@ view model =
                 (stateView model)
             , footer
                 []
-                [ p
+                [ p 
+                    [] 
+                    [ a [ href "https://github.com/ceddlyburge/tournament-organiser" ] [ text "Code on GitHub" ] ]
+                , p
                     []
                     [ span
                         []
@@ -572,9 +575,6 @@ view model =
                             [ text "2" ]
                         , text " equivalent"
                         , text ". "
-                        , a
-                            [ href "http://green-pages.earth/page-statistics" ]
-                            [ text "Read more ..." ]
                         ]
                     ]
                 ]
